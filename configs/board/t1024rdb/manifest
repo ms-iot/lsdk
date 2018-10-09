@@ -1,0 +1,19 @@
+# [general]
+machine=t1024rdb
+
+# [firmware_images]
+rcw_nor=build/firmware/rcw/t1024rdb/RRX_PPP_95/rcw_95_1400MHz.bin
+rcw_nor_sec=build/firmware/rcw/t1024rdb/RRX_PPP_95/rcw_sben_95_1400MHz.bin
+uboot_norboot=build/firmware/u-boot/t1024rdb/uboot_T1024RDB.bin
+uboot_sdboot=build/firmware/u-boot/t1024rdb/uboot_T1024RDB_SDCARD.bin
+uboot_nandboot=build/firmware/u-boot/t1024rdb/uboot_T1024RDB_NAND.bin
+uboot_norboot_sec=build/firmware/u-boot/t1024rdb/uboot_T1024RDB_SECURE_BOOT.bin
+fman_ucode=build/firmware/qoriq-fm-ucode/fsl_fman_ucode_t1024_r1.0_106_4_18.bin
+qe_firmware=build/firmware/qoriq-qe-ucode/iram_Type_A_T1024_r1.0.bin
+phy_firmware=build/firmware/qoriq-firmware-cortina/cs4315-cs4340-PHY-ucode.txt
+
+# [linux, dtb, rfs]
+kernel_img=build/linux/kernel/ppc64/Image.gz
+device_tree=build/linux/kernel/ppc64/t1024rdb.dtb
+ramdiskrfs=build/images/rootfs_buildroot_ppc64_ext2_tiny.gz.uboot
+kernelrfs_continuous=yes

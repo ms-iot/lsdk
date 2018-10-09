@@ -1,0 +1,380 @@
+#!/bin/bash
+
+# Copyright 2017 NXP
+#
+# SPDX-License-Identifier:      BSD-3-Clause
+#
+# Author: Shengzhou Liu <shengzhou.liu@nxp.com>
+#
+#
+# utility to generate custom aarch64/armhf/x86 ubutnu/debian userland with
+# configurable packages and proprietary components.
+#
+
+set -e
+
+VERSION=1.1
+ARCH=`uname -m`
+
+usage() {
+    echo "usage: flex-mkdistrorfs <arch> <distro_codename> [ <addtional-package-list> ]"
+    echo example:
+    echo " flex-mkdistrorfs arm64 xenial"
+    echo " flex-mkdistrorfs armhf stretch additional_packages_list_moderate"
+    echo " flex-mkdistrorfs amd64 zesty"
+    exit
+}
+
+
+ARGS=`getopt -a -o vh -l version,help -- "$@"`
+[ $? -ne 0 ] && usage
+eval set -- "${ARGS}"
+while true
+do
+	case "$1" in
+	-v|--version)
+		echo $VERSION
+		exit
+		;;
+	-h|--help)
+		usage
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+shift
+done
+
+if [ $# -lt 2 ]; then
+    usage
+fi
+
+gen_distrorfs_firststage() {
+    if [ $1 = armhf ]; then
+	tarch=arm32
+    else
+	tarch=$1
+    fi
+    if [ -z "$RFSDIR" ]; then
+	if [ $DISTROSCALE = tiny ]; then
+	    RFSDIR=$FBDIR/build/rfs/rootfs_${DISTROTYPE}_${2}_${tarch}_tiny
+	else
+	    RFSDIR=$FBDIR/build/rfs/rootfs_${DISTROTYPE}_${2}_$tarch
+	fi
+    fi
+    if [ -f $RFSDIR/usr/aptpkg/.firststagedone ]; then
+	echo $RFSDIR firststage exist!
+	return
+    fi
+    if [ -f /usr/aptpkg/.firststagedone ] && [ ! -f /proc/cpuinfo ]; then
+        return
+    fi
+    mkdir -p $RFSDIR/usr/bin
+    sudo mkdir -p $RFSDIR/lib/modules
+
+    for pkg in binfmt-support qemu-system-common qemu-user-static debootstrap; do
+	if ! dpkg-query -l $pkg | grep ii 1>/dev/null; then
+	    echo installing $pkg
+	    sudo apt-get -y install $pkg
+        fi
+    done
+
+    if [ $1 = arm64 ]; then
+	tgtarch=aarch64
+    elif [ $1 = armhf ]; then
+	tgtarch=arm
+    fi
+
+    if [ ! -f /usr/sbin/update-binfmts ]; then
+	echo update-binfmts not found
+	exit 1
+    fi
+
+    if update-binfmts --display qemu-$tgtarch | grep disabled 1>/dev/null; then
+	update-binfmts --enable qemu-$tgtarch
+	if update-binfmts --display qemu-$tgtarch | grep disabled; then
+	    echo enable qemu-$tgtarch failed
+	    exit 1
+	else
+	    echo enable qemu-$tgtarch successfully
+	fi
+    fi
+
+    if [ ! -f /usr/bin/qemu-${tgtarch}-static ]; then
+	echo qemu-${tgtarch}-static not found
+	exit 1
+    fi
+
+    if [ ! -f /usr/sbin/debootstrap -a "$MKRFS_WITH_DEBOOTSTRAP" = "y" ]; then
+	echo debootstrap not found
+	exit 1
+    fi
+
+    if [ $1 != amd64 -a ! -f $RFSDIR/usr/bin/qemu-${tgtarch}-static ]; then
+        sudo cp /usr/bin/qemu-${tgtarch}-static $RFSDIR/usr/bin
+    fi
+    if [ ! -f $RFSDIR/usr/bin/flex-mkdistrorfs ]; then
+	sudo cp tools/flex-mkdistrorfs $RFSDIR/usr/bin
+    fi
+    if [ ! -f $RFSDIR/usr/bin/flex-installer ]; then
+	sudo cp tools/flex-installer $RFSDIR/usr/bin
+    fi
+    if [ -n "$3" ]; then
+	if [ ! -f configs/ubuntu/$3 ]; then
+	    echo configs/ubuntu/$3 not found!
+	    exit 1
+	fi
+	packages_list=configs/ubuntu/$3
+    else
+        packages_list=configs/ubuntu/additional_packages_list_moderate
+    fi
+    echo additional packages list: $packages_list
+    if [ ! -d $RFSDIR/usr/aptpkg ]; then
+	sudo mkdir -p $RFSDIR/usr/aptpkg
+	sudo cp -f $packages_list $RFSDIR/usr/aptpkg
+	if [ $DISTROSCALE != tiny -a $DISTROTYPE = ubuntu ]; then
+	    sudo cp -f configs/ubuntu/extrinsic-pkg/*.sh $RFSDIR/usr/aptpkg
+	    if [ -f configs/ubuntu/reconfigpkg.sh ]; then
+	        sudo cp -f configs/ubuntu/reconfigpkg.sh $RFSDIR/usr/aptpkg
+	    fi
+	    echo "Fetch Docker's official GPG key..."
+	    wget -O - https://download.docker.com/linux/ubuntu/gpg |sudo tee $RFSDIR/usr/aptpkg/docker-gpg
+	fi
+    fi
+
+    if [ -n "$http_proxy" ]; then
+	sudo mkdir -p $RFSDIR/etc/apt
+	echo "http_proxy = $http_proxy" | sudo tee -a /etc/wgetrc
+	echo "Acquire::http::proxy \"$http_proxy\";" | sudo tee -a $RFSDIR/etc/apt/apt.conf
+    fi
+    if [ -n "$https_proxy" ]; then
+	echo "https_proxy = $https_proxy" | sudo tee -a /etc/wgetrc
+	echo "Acquire::https::proxy \"$https_proxy\";" | sudo tee -a $RFSDIR/etc/apt/apt.conf
+    fi
+
+    if [ $DISTROTYPE = ubuntu -a $DISTROSCALE = tiny ] || [ "$MKRFS_WITH_DEBOOTSTRAP" != y  ]; then
+	sudo cp -f /etc/resolv.conf $RFSDIR/etc/resolv.conf
+    fi
+
+    if [ ! -d $RFSDIR/debootstrap -a "$DISTROSCALE" != tiny ] && [ "$MKRFS_WITH_DEBOOTSTRAP" = "y" ]; then
+        sudo debootstrap --arch=$1 --foreign $2 $RFSDIR
+        echo "installing for second-stage ..."
+        DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true LC_ALL=C LANGUAGE=C LANG=C \
+        sudo chroot $RFSDIR /debootstrap/debootstrap  --second-stage
+	echo "configure ... "
+	DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true LC_ALL=C LANGUAGE=C LANG=C \
+	sudo chroot $RFSDIR dpkg --configure -a
+    fi
+
+    sudo touch $RFSDIR/usr/aptpkg/.firststagedone
+    sudo chroot $RFSDIR flex-mkdistrorfs $1 $2 $3
+}
+
+
+install_cfg_secondstage() {
+    if [ -f /usr/aptpkg/.rfsblddone ] && [ ! -f /proc/cpuinfo ]; then
+	return
+    fi
+    if [ -n "$3" ]; then
+	packages_list=/usr/aptpkg/$3
+    else
+        packages_list=/usr/aptpkg/additional_packages_list_moderate
+    fi
+    . $packages_list
+
+    # create user and passwd
+    if [ ! -d /home/user ]; then
+        useradd -m -d /home/user -s /bin/bash user
+        gpasswd -a user sudo
+        echo -e 'root\nroot\n' | passwd root
+        echo -e 'user\nuser\n' | passwd user
+	mkdir -p /home/user
+	chown -R user:user /home/user
+    fi
+    # set default hostname
+    echo localhost > /etc/hostname
+
+    # set apt sources list to install additional packages
+    asl=/etc/apt/sources.list
+    if [ "$MKRFS_WITH_DEBOOTSTRAP" = y -a $DISTROTYPE = ubuntu ]; then
+	rm -f $asl
+	if [ $ARCH = "x86_64" -o $ARCH = "i686" ]; then
+	    fn=archive; pn=ubuntu;
+	else
+	    fn=ports; pn=ubuntu-ports;
+	fi
+	echo deb http://us.$fn.ubuntu.com/$pn/ $2 main restricted >> $asl
+	echo deb-src http://us.$fn.ubuntu.com/$pn/ $2 main restricted >> $asl
+	echo deb http://us.$fn.ubuntu.com/$pn/ $2-updates main restricted >> $asl
+	echo deb-src http://us.$fn.ubuntu.com/$pn/ $2-updates main restricted >> $asl
+	echo deb http://$fn.ubuntu.com/$pn $2-security main restricted >> $asl
+	echo deb-src http://$fn.ubuntu.com/$pn $2-security main restricted >> $asl
+	
+	# some packages (e.g. docker, iperf, netperf, etc) need to be installed from universe/multiverse
+	echo deb http://us.$fn.ubuntu.com/$pn/ $2 universe >> $asl
+	echo deb-src http://us.$fn.ubuntu.com/$pn/ $2 universe >> $asl
+	echo deb http://us.$fn.ubuntu.com/$pn/ $2-updates universe >> $asl
+	echo deb-src http://us.$fn.ubuntu.com/$pn/ $2-updates universe >> $asl
+	echo deb http://us.$fn.ubuntu.com/$pn/ $2 multiverse >> $asl
+	echo deb-src http://us.$fn.ubuntu.com/$pn/ $2 multiverse >> $asl
+	echo deb http://us.$fn.ubuntu.com/$pn/ $2-updates multiverse >> $asl
+	echo deb-src http://us.$fn.ubuntu.com/$pn/ $2-updates multiverse >> $asl
+    elif [ "$MKRFS_WITH_DEBOOTSTRAP" = y -a $DISTROTYPE = debian ]; then
+	rm -f $asl
+	echo deb [arch=$1] http://mirrors.kernel.org/debian/ $2 main >> $asl
+    fi
+
+    apt-get -y update
+    if [ $DISTROTYPE = ubuntu -a $DISTROSCALE != tiny ]; then
+	if ! dpkg-query -W language-pack-en-base 1>/dev/null; then
+	    echo installing language-pack-en-base ..
+            DEBIAN_FRONTEND=noninteractive LC_ALL=C LANGUAGE=C LANG=C \
+	    apt-get -y install language-pack-en-base
+	fi
+    fi
+    apt-get -y upgrade
+
+    if [ ! -f /proc/uptime ]; then
+	mount -t proc proc /proc
+    fi
+    if [ ! -f /dev/pts/ptmx ]; then
+	mount -t devpts devpts /dev/pts
+    fi
+
+    # install cross toolchain for armhf on aarch64 machine
+    if [ $ARCH = aarch64 -a $DISTROTYPE = ubuntu -a $DISTROSCALE != tiny ] && \
+       [ -f /usr/bin/qemu-aarch64-static ]; then
+        apt-get -y install crossbuild-essential-armhf gcc-arm-linux-gnueabihf
+    fi
+
+    # Add additional packages for user convenience
+    echo installing additional packages: $additional_packages_list
+    for pkg in $additional_packages_list; do
+	echo installing $pkg ...
+	DEBIAN_FRONTEND=noninteractive apt-get -y install $pkg || true
+    done
+    echo installed additional packages.
+
+    # install docker-ce
+    if [ $DISTROTYPE = ubuntu -a $DISTROSCALE != tiny ]; then
+        apt-get install -y apt-transport-https ca-certificates software-properties-common
+        echo deb https://download.docker.com/linux/ubuntu/ $2 stable >>$asl
+        apt-key add /usr/aptpkg/docker-gpg
+        apt-key fingerprint 0EBFCD88
+        apt-get -y update
+        apt-get install -y docker-ce
+    fi
+
+    if [ "$3" != "additional_packages_list_tiny" ]; then
+        # install python lib six depended by building ovs-dpdk locally
+        if ! pip show -q six; then
+	    pip install six;
+        fi
+    fi
+
+    # install extrinsic packages which is needed but not provided yet from official ubuntu
+    if [ $DISTROSCALE != tiny ]; then
+	pkglist=`cd /usr/aptpkg && ls *.sh`
+	for pkg in $pkglist; do
+	    pn=${pkg%.*}
+	    if [ -n "$extrinsic_packages_list" ] && [ `echo $extrinsic_packages_list | grep -E $pn` ]; then
+		echo installing extrinsic package $pn ...
+		/usr/aptpkg/$pkg
+	    fi
+	done
+    fi
+
+    if [ $1 = arm64 ]; then
+	tarch=aarch64-linux-gnu
+    elif [ $1 = armhf ]; then
+	tarch=arm-linux-gnueabihf
+    fi
+
+    if [ $1 = arm64 -o $1 = armhf ] && [ $DISTROSCALE != tiny ]; then
+	cd /lib/$tarch && ln -sf  ../../usr/lib/$tarch/libxml2.so libxml2.so && \
+	ln -sf ../../usr/lib/$tarch/libpcap.so libpcap.so && \
+	ln -sf ../../usr/lib/$tarch/libnuma.so libnuma.so && \
+	ln -sf ../../usr/lib/$tarch/libssl.so libssl.so && \
+	ln -sf ../../usr/lib/$tarch/libcrypto.so.1.1 libcrypto.so.1.1 && \
+	ln -sf ../../usr/lib/$tarch/libcrypto.so libcrypto.so
+	cd /usr/lib && ln -sf $tarch/libcunit.so libcunit.so
+    fi
+
+    if [ -f /usr/bin/sudo -a ! -u /usr/bin/sudo ]; then
+	chmod +s /usr/bin/sudo
+    fi
+    if [ -d /var/cache/man ]; then
+	chown -R man:root /var/cache/man
+    fi
+
+    # some shared libraries locate in /lib/aarch64-linux-gnu(or /lib/arm-linux-gnueabihf) and /usr/local/lib
+    LD_LIBRARY_PATH=/lib/$tarch
+    echo export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH >> /root/.bashrc
+    echo export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH >> /home/user/.bashrc
+
+    # set friendly rows and columns for tty
+    echo stty columns 237 rows 58 >> /root/.bashrc
+    echo stty columns 237 rows 58 >> /home/user/.bashrc
+
+    tmpusr=`ls -t /home | cut -d' ' -f1 | head -1`
+    if [ -d /home/$tmpusr -a "$tmpusr" != "user" ]; then
+	rm -rf /home/$tmpusr
+    fi
+    if [ $DISTROSCALE != tiny -a $DISTROTYPE = ubuntu ]; then
+	/usr/aptpkg/reconfigpkg.sh
+    fi
+
+    if [ -f /proc/uptime ]; then
+        umount /proc
+    fi
+    if [ -f /dev/pts/ptmx ]; then
+        umount /dev/pts
+    fi
+
+    touch /usr/aptpkg/.rfsblddone
+}
+
+
+if [ -z "$DISTROTYPE" ] && [ $2 = jessie -o $2 = stretch ]; then
+    DISTROTYPE=debian
+elif [ -z "$DISTROTYPE" ] && [ $2 = xenial -o $2 = bionic ]; then
+    DISTROTYPE=ubuntu
+fi
+
+if [ -z "$DISTROSCALE" ]; then
+    if [ "$3" = "additional_packages_list_tiny" ]; then
+	DISTROSCALE=tiny
+    else
+	DISTROSCALE=moderate
+    fi
+fi
+
+
+if [ -z "$MKRFS_WITH_DEBOOTSTRAP" ]; then
+    if [ "$DISTROSCALE" = "tiny" ]; then
+	MKRFS_WITH_DEBOOTSTRAP=n
+    else
+	MKRFS_WITH_DEBOOTSTRAP=y
+    fi
+fi
+
+gen_distrorfs_firststage $1 $2 $3
+
+if [ $1 = armhf ]; then
+    tarch=arm32
+else
+    tarch=$1
+fi
+
+if [ -f build/rfs/${DISTROTYPE}_$2_${tarch}_rootfs.d/usr/aptpkg/.rfsblddone ]; then
+    echo build/rfs/${DISTROTYPE}_$2_${tarch}_rootfs.d is available!
+    exit
+fi
+
+if [ $ARCH = "aarch64" -o $ARCH = "armv7l" ] && [ ! -f /proc/uptime ]; then
+    install_cfg_secondstage $1 $2 $3
+    distrotimestamp=${DISTROTYPE}_$2_${tarch}_`date +%Y%m%d%H%M`
+    echo $distrotimestamp > /usr/aptpkg/.rfsblddone
+fi

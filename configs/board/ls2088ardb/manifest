@@ -1,0 +1,81 @@
+# [general]
+machine=ls2088ardb
+
+# [firmware_images]
+rcw_nor=build/firmware/rcw/ls2088ardb/FFFFFFFF_PP_HH_0x2a_0x41/rcw_1800.bin
+rcw_nor_sec=build/firmware/rcw/ls2088ardb/FFFFFFFF_PP_HH_0x2a_0x41/rcw_1800_sec.bin
+rcw_qspi=build/firmware/rcw/ls2088ardb/FFFFFFFF_PP_HH_0x2a_0x41/rcw_2000_qspi.bin
+rcw_qspi_sec=build/firmware/rcw/ls2088ardb/FFFFFFFF_PP_HH_0x2a_0x41/rcw_2000_qspi_sec.bin
+uboot_norboot=build/firmware/u-boot/ls2088ardb/uboot_ls2080ardb.bin
+uboot_norboot_sec=build/firmware/u-boot/ls2088ardb/uboot_ls2080ardb_SECURE_BOOT.bin
+uboot_nandboot=build/firmware/u-boot/ls2088ardb/uboot_ls2080ardb_nand.bin
+uboot_qspiboot=build/firmware/u-boot/ls2088ardb/uboot_ls2088ardb_qspi.bin
+uboot_qspiboot_sec=build/firmware/u-boot/ls2088ardb/uboot_ls2088ardb_qspi_SECURE_BOOT.bin
+uboot_sdboot=null
+uboot_sdboot_sec=null
+uefi_norboot=build/firmware/uefi/ls2088ardb/LS2088ARDB_EFI_NORBOOT.fd
+uefi_env=build/firmware/uefi/ls2088ardb/LS2088ARDBNV_EFI_NORBOOT.fd
+ppa=build/firmware/ppa/soc-ls2088/ppa.itb
+secureboot_headers_nor=build/firmware/secboot_hdrs/ls2088ardb/secboot_hdrs_norboot.bin
+secureboot_headers_qspi=build/firmware/secboot_hdrs/ls2088ardb/secboot_hdrs_qspiboot.bin
+phy_firmware=build/firmware/qoriq-firmware-cortina/cs4315-cs4340-PHY-ucode.txt
+dpaa2_mc_fw=build/firmware/qoriq-mc-binary/ls2088a/mc*.itb
+dpaa2_mc_dpc=build/firmware/mc-utils/config/ls2088a/RDB/custom/dpc-bman-4M.0x2A_0x41.dtb
+dpaa2_mc_dpl=build/firmware/mc-utils/config/ls2088a/RDB/dpl-eth.0x2A_0x41.dtb
+
+# [linux, dtb, rfs]
+kernel_img=build/linux/kernel/arm64/Image
+device_tree=build/linux/kernel/arm64/fsl-ls2088a-rdb.dtb
+ramdiskrfs=packages/rfs/ramdiskrfs/ramdisk_rootfs_arm64.ext4.gz
+kernelrfs_continuous=yes
+
+
+# [distro autoboot script]
+uboot_scr=build/firmware/u-boot/ls2088ardb/ls2088ardb_boot.scr
+bootscript_dec=build/firmware/u-boot/ls2088ardb/ls2088ardb_dec_boot.scr
+bootscript_enforce=build/firmware/u-boot/ls2088ardb/ls2088ardb_enforce_boot.scr
+
+securevalidate="setenv secureboot_validate 'load \$devtype \$devnum:\$devpart_boot \$kernelheader_addr_r /secboot_hdrs/ls2088ardb/hdr_linux.out; load \$devtype \$devnum:\$devpart_boot \$fdtheader_addr_r /secboot_hdrs/ls2088ardb/hdr_dtb.out; esbc_validate \$kernelheader_addr_r; esbc_validate \$fdtheader_addr_r'"
+
+securevalidate_enc="setenv secureboot_validate 'load \$devtype \$devnum:\$devpart_boot \$kernelheader_addr_r /secboot_hdrs/ls2088ardb/hdr_linux.out; esbc_validate \$kernelheader_addr_r;load \$devtype \$devnum:\$devpart_boot \$fdtheader_addr_r /secboot_hdrs/ls2088ardb/hdr_dtb.out; esbc_validate \$fdtheader_addr_r; size \$devtype \$devnum:\$devpart_boot $kernel_image; echo Encapsulating linux image;setenv key_addr 0x87000000; mw \$key_addr $key_id_1;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_2;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_3;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_4;blob enc \$kernel_addr_r \$load_addr \$filesize \$key_addr; setexpr blobsize \$filesize + 0x30;echo Saving encrypted linux ;save \$devtype \$devnum:\$devpart_boot \$load_addr $kernel_image \$blobsize;size \$devtype \$devnum:\$devpart_boot $dtb;echo Encapsulating dtb image; blob enc \$fdt_addr_r \$load_addr \$filesize \$key_addr; setexpr blobsize \$filesize + 0x30;echo Saving encrypted dtb; save \$devtype \$devnum:\$devpart_boot \$load_addr $dtb \$blobsize; size \$devtype \$devnum:\$devpart_boot /ls2088ardb_dec_boot.scr; load \$devtype \$devnum:\$devpart_boot \$load_addr /ls2088ardb_dec_boot.scr; echo replacing Bootscript; save \$devtype \$devnum:\$devpart_boot \$load_addr /ls2088ardb_boot.scr \$filesize;size \$devtype \$devnum:\$devpart_boot /secboot_hdrs/ls2088ardb/hdr_ls2088ardb_bs_dec.out; load \$devtype \$devnum:\$devpart_boot \$load_addr /secboot_hdrs/ls2088ardb/hdr_ls2088ardb_bs_dec.out ;echo Replacing bootscript header; save \$devtype \$devnum:\$devpart_boot \$load_addr /hdr_ls2088ardb_bs.out \$filesize;reset;'"
+
+securevalidate_dec="setenv secureboot_validate 'size \$devtype \$devnum:\$devpart_boot $kernel_image;setexpr imgsize \$filesize - 0x30 ;echo Decapsulating linux image; setenv key_addr 0x87000000; mw \$key_addr $key_id_1;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_2;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_3;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_4; blob dec \$kernel_addr_r \$load_addr \$imgsize \$key_addr; cp.b \$load_addr \$kernel_addr_r \$filesize ;size \$devtype \$devnum:\$devpart_boot $dtb;setexpr imgsize \$filesize - 0x30 ;echo Decapsulating dtb kernel_image; blob dec \$fdt_addr_r \$load_addr \$imgsize \$key_addr; cp.b \$load_addr \$fdt_addr_r \$filesize ; '"
+
+securevalidate_fix="setenv secureboot_validate 'load \$devtype \$devnum:2 \$kernelheader_addr_r /secboot_hdrs/ls2088ardb/hdr_linux.out; esbc_validate \$kernelheader_addr_r;load \$devtype \$devnum:2 \$fdtheader_addr_r /secboot_hdrs/ls2088ardb/hdr_dtb.out; esbc_validate \$fdtheader_addr_r; load \$devtype \$devnum:2 \$initramfsheader_addr_r /secboot_hdrs/ls2088ardb/hdr_initramfs.out; esbc_validate \$initramfsheader_addr_r; size \$devtype \$devnum:2 /ls2088ardb_enforce_boot.scr; load \$devtype \$devnum:2 \$load_addr /ls2088ardb_enforce_boot.scr; echo Replacing Bootscript; save \$devtype \$devnum:2 \$load_addr /ls2088ardb_boot.scr \$filesize;size \$devtype \$devnum:2 /secboot_hdrs/ls2088ardb/hdr_ls2088ardb_bs_enf.out; load \$devtype \$devnum:2 \$load_addr /secboot_hdrs/ls2088ardb/hdr_ls2088ardb_bs_enf.out ;echo Replacing bootscript header; save \$devtype \$devnum:2 \$load_addr /hdr_ls2088ardb_bs.out \$filesize; ' setenv othbootargs 'ima_tcb ima_appraise=fix ima_appraise_tcb evm=fix enforcing=0 '"
+
+securevalidate_enforce="setenv secureboot_validate 'load \$devtype \$devnum:2 \$kernelheader_addr_r /secboot_hdrs/ls2088ardb/hdr_linux.out; esbc_validate \$kernelheader_addr_r;load \$devtype \$devnum:2 \$fdtheader_addr_r /secboot_hdrs/ls2088ardb/hdr_dtb.out; esbc_validate \$fdtheader_addr_r; load \$devtype \$devnum:2 \$initramfsheader_addr_r /secboot_hdrs/ls2088ardb/hdr_initramfs.out; esbc_validate \$initramfsheader_addr_r; ' setenv othbootargs 'ima_tcb ima_appraise=enforce ima_appraise_tcb enforcing=1 '"
+
+distroboot=\
+'env exists dtb || setenv dtb fsl-ls2088a-rdb.dtb;'\
+'env exists kernel_image || setenv kernel_image Image;'\
+'env exists devpart_boot || setenv devpart_boot 2;'\
+'env exists devpart_root || setenv devpart_root 3;'\
+'part uuid $devtype $devnum:$devpart_root partuuidr;'\
+'setenv bootargs console=ttyS1,115200 earlycon=uart8250,mmio,0x21c0600 root=PARTUUID=$partuuidr rw rootwait iommu.passthrough=1 default_hugepagesz=2m hugepagesz=2m hugepages=256 $othbootargs;'\
+'load $devtype $devnum:$devpart_boot $kernel_addr_r $kernel_image;'\
+'load $devtype $devnum:$devpart_boot $fdt_addr_r $dtb;'\
+'env exists secureboot && echo validating secureboot && run secureboot_validate;'\
+'booti $kernel_addr_r - $fdt_addr_r'
+
+distroboot_ima=\
+'env exists dtb || setenv dtb fsl-ls2088a-rdb.dtb;'\
+'env exists kernel_image || setenv kernel_image Image;'\
+'env exists devpart_boot || setenv devpart_boot 2;'\
+'env exists devpart_root || setenv devpart_root 3;'\
+'part uuid $devtype $devnum:$devpart_root partuuidr;'\
+'load $devtype $devnum:$devpart_boot $kernel_addr_r $kernel_image;'\
+'load $devtype $devnum:$devpart_boot $fdt_addr_r $dtb;'\
+'setenv initramfs_addr_r 0xb0000000; setenv initramfsheader_addr_r 0x80300000;'\
+'load $devtype $devnum:2 $initramfs_addr_r initramfs.img;'\
+'env exists secureboot && echo validating secureboot && run secureboot_validate;'\
+'setenv bootargs console=ttyS1,115200 earlycon=uart8250,mmio,0x21c0600 root=PARTUUID=$partuuid3 rw rootwait iommu.passthrough=1 default_hugepagesz=2m hugepagesz=2m hugepages=256 $othbootargs;'\
+'booti $kernel_addr_r $initramfs_addr_r $fdt_addr_r'
+
+# [uefi grub config, updated by installer]
+uefi_grub_search="search --no-floppy --file /partuuid02 --set root"
+uefi_grub_linux="linux  /Image  console=ttyS1,115200 earlycon=uart8250,mmio,0x21c0600 root=PARTUUID=partuuid03 rw rootwait ramdisk_size=0x2000000 default_hugepagesz=2m hugepagesz=2m hugepages=256"
+
+
+# [secure boot scripts in cst]
+nor_script=scripts/platforms/ls2088_1088_nor.sh
+qspi_script=scripts/platforms/ls2088_qspi.sh

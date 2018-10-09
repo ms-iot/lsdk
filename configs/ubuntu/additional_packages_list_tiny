@@ -1,0 +1,4 @@
+# additional packages list in case using ubuntu-base for generating a tiny Ubuntu
+
+additional_packages_list="systemd net-tools iputils-ping isc-dhcp-client"
+

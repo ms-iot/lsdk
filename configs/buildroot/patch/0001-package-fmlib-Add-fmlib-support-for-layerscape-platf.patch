@@ -1,0 +1,129 @@
+From bba9cb46fc2f21e833aedfec4c7dc4dd9453a329 Mon Sep 17 00:00:00 2001
+From: Shengzhou Liu <Shengzhou.Liu@nxp.com>
+Date: Fri, 19 Jan 2018 16:55:01 +0800
+Subject: [PATCH 2/2] package: fmlib: Add fmlib support for layerscape platform
+
+Signed-off-by: Shengzhou Liu <Shengzhou.Liu@nxp.com>
+---
+ package/fmlib/Config.in  | 51 ++++++------------------------------------------
+ package/fmlib/fmlib.hash |  2 +-
+ package/fmlib/fmlib.mk   | 19 ++++++++----------
+ 3 files changed, 15 insertions(+), 57 deletions(-)
+
+diff --git a/package/fmlib/Config.in b/package/fmlib/Config.in
+index df4ae44..dd140d9 100644
+--- a/package/fmlib/Config.in
++++ b/package/fmlib/Config.in
+@@ -1,50 +1,11 @@
+ comment "fmlib needs a Linux kernel to be built"
+-	depends on BR2_powerpc_e500mc || BR2_powerpc_e6500
+-	depends on !BR2_LINUX_KERNEL
++	depends on BR2_powerpc_e500mc || BR2_powerpc_e6500 || BR2_cortex_a7 || BR2_aarch64 || BR2_arm
+ 
+ config BR2_PACKAGE_FMLIB
+ 	bool "fmlib"
+-	depends on BR2_powerpc_e500mc || BR2_powerpc_e6500
+-	depends on BR2_LINUX_KERNEL
++	depends on BR2_powerpc_e500mc || BR2_powerpc_e6500 || BR2_cortex_a7 || BR2_aarch64 || BR2_arm
+ 	help
+-	  The Frame Manager library provides Freescale PowerPC platforms
+-	  an API on top of the Frame Manager driver ioctl calls, that
+-	  provides a user space application with a simple way to
+-	  configure driver parameters and PCD (parse - classify -
+-	  distribute) rules.
+-
+-	  http://git.freescale.com/git/cgit.cgi/ppc/sdk/fmlib.git/tree/README
+-
+-if BR2_PACKAGE_FMLIB
+-choice
+-	prompt "QorIQ Target Family"
+-	help
+-	  Select the family of QorIQ processor.
+-
+-config BR2_FMLIB_QORIQ_FAMILY_P4080
+-	bool "p40xx"
+-	depends on BR2_powerpc_e500mc
+-
+-config BR2_FMLIB_QORIQ_FAMILY_T4240
+-	bool "t42xx"
+-	depends on BR2_powerpc_e500mc
+-
+-config BR2_FMLIB_QORIQ_FAMILY_T2080
+-	bool "t208x"
+-	depends on BR2_powerpc_e6500
+-
+-endchoice
+-
+-config BR2_PACKAGE_FMLIB_ARCHTYPE
+-	string
+-	default "e500mc" if BR2_powerpc_e500mc
+-	default "ppc64e6500" if BR2_powerpc_e6500 && BR2_powerpc64
+-	default "ppc32e6500" if BR2_powerpc_e6500 && BR2_powerpc
+-
+-config BR2_PACKAGE_FMLIB_PLATFORM
+-	string
+-	default "P4080" if BR2_FMLIB_QORIQ_FAMILY_P4080
+-	default "T4240" if BR2_FMLIB_QORIQ_FAMILY_T4240
+-	default "FMAN_V3H" if BR2_FMLIB_QORIQ_FAMILY_T2080
+-
+-endif
++	  The Frame Manager library provides Freescale PowerPC platforms an
++	  API on top of the Frame Manager driver ioctl calls, that provides
++	  a user space application with a simple way to configure driver
++	  parameters and PCD (parse - classify - distribute) rules.
+diff --git a/package/fmlib/fmlib.hash b/package/fmlib/fmlib.hash
+index 3746695..f0e4323 100644
+--- a/package/fmlib/fmlib.hash
++++ b/package/fmlib/fmlib.hash
+@@ -1,2 +1,2 @@
+ # Locally computed
+-sha256	e5870756c7432b15f7a48b860625808f3c95d5f7fa5e251552eb2324ca51b0fa	fmlib-fsl-sdk-v2.0.tar.gz
++sha256	71a5579af16ede7ff48c959fe0e2ab49bba91d744f5c480dc7050846aef4c9cb	fmlib-LSDK-17.12.tar.gz
+diff --git a/package/fmlib/fmlib.mk b/package/fmlib/fmlib.mk
+index e67ab1e..fd10449 100644
+--- a/package/fmlib/fmlib.mk
++++ b/package/fmlib/fmlib.mk
+@@ -4,11 +4,12 @@
+ #
+ ################################################################################
+ 
+-FMLIB_VERSION = fsl-sdk-v2.0
+-FMLIB_SITE = git://git.freescale.com/ppc/sdk/fmlib.git
+-FMLIB_LICENSE = BSD-3-Clause, GPL-2.0+
++FMLIB_VERSION = LSDK-17.12
++FMLIB_SITE = https://github.com/qoriq-open-source/fmlib.git
++FMLIB_SITE_METHOD = git
++FMLIB_LICENSE = GPL
+ FMLIB_LICENSE_FILES = COPYING
+-FMLIB_DEPENDENCIES = linux
++# FMLIB_DEPENDENCIES = linux
+ FMLIB_INSTALL_STAGING = YES
+ 
+ # This package installs a static library only, so there's
+@@ -18,20 +19,16 @@ FMLIB_INSTALL_TARGET = NO
+ FMLIB_MAKE_OPTS = \
+ 	CC="$(TARGET_CC)" \
+ 	CROSS_COMPILE="$(TARGET_CROSS)" \
+-	KERNEL_SRC="$(LINUX_DIR)" \
++	KERNEL_SRC="$(FBDIR)/packages/linux/$(KERNEL_TREE)" \
+ 	PREFIX="$(STAGING_DIR)/usr"
+ 
+-FMLIB_ARCHTYPE = $(call qstrip,$(BR2_PACKAGE_FMLIB_ARCHTYPE))
+-FMLIB_PLATFORM = $(call qstrip,$(BR2_PACKAGE_FMLIB_PLATFORM))
+-
+ define FMLIB_BUILD_CMDS
+-	$(SED) "s:P4080:$(FMLIB_PLATFORM):g" $(@D)/Makefile
+-	$(TARGET_MAKE_ENV) $(MAKE) $(FMLIB_MAKE_OPTS) -C $(@D) libfm-$(FMLIB_ARCHTYPE).a
++	$(TARGET_MAKE_ENV) $(MAKE) $(FMLIB_MAKE_OPTS) -C $(@D)
+ endef
+ 
+ define FMLIB_INSTALL_STAGING_CMDS
+ 	$(RM) $(STAGING_DIR)/usr/lib/libfm.a
+-	$(TARGET_MAKE_ENV) $(MAKE) $(FMLIB_MAKE_OPTS) -C $(@D) install-libfm-$(FMLIB_ARCHTYPE)
++	$(TARGET_MAKE_ENV) $(MAKE) $(FMLIB_MAKE_OPTS) -C $(@D) install-libfm-arm
+ endef
+ 
+ $(eval $(generic-package))
+-- 
+2.7.4
+

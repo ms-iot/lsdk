@@ -1,0 +1,189 @@
+QorIQ Layerscape Software Development Kit (LSDK) is a complete Linux kit for NXP QorIQ ARM-based SoCs.
+LSDK can be built with flex-builder and be deployed with flex-installer.
+
+
+LSDK Quick Start
+-------------------------------------------------------------------------------------------------------------------------------------
+Select the appropriate way of build mechanism:
+   To accommodate various build environments, LSDK provides three ways of build mechanism, please refer to following 3 scenarios:
+
+   - Scenario 1: If Ubuntu 18.04 or above is installed on your x86 host machine, the direct cross-build way is recommended
+     Prerequisites:
+     - non-root users need achieve sudo permission by running command 'sudoedit /etc/sudoers' and adding lines as below in /etc/sudoers:
+        <user-account-name> ALL=(ALL) NOPASSWD: ALL
+     - For root user, there is no limitation for the build.
+     - To build the Ubuntu userland, the user's network environment must have access to the remote Ubuntu official server.
+
+
+   - Scenario 2: If other Linux distro (CentOS, RHEL, Fedora, Debian, etc) is installed on host machine, the way of build in Docker can be used.
+     Please install Docker on host machine firstly, refer to https://docs.docker.com/engine/installation for Docker installation.
+     Prerequisites:
+     - Docker is installed on host machine and non-root user has achieved sudo permission for 'docker' command or been added to docker group as below:
+       $ sudo newgrp - docker
+       $ sudo usermod -aG docker <account-name>
+       $ sudo gpasswd -a <account-name> docker
+       $ sudo service docker restart
+       Logout from current terminal session, then login again to ensure user can run 'docker ps -a'
+     - To build the Ubuntu userland, the user's network environment must have access to the remote Ubuntu official server.
+     Steps:
+     $ cd flexbuild
+     $ source setup.env  (on host machine)
+     $ run 'flex-builder docker', then click Enter key
+     $ source setup.env  (in docker environment)
+     if necessary, user can exit from docker container without change current work path by executing 'exit' command.
+
+
+   - Scenario 3: If the Ubuntu userland had already been deployed on target board, the way of native build on target board can be used.
+     Prerequisites:
+     - Please set the system date and time by 'date -s' command
+     - To build the Ubuntu userland, the user's network environment must have access to the remote Ubuntu official server.
+
+
+Assemble and deploy LSDK on target board with prebuilt images except distro userland
+ - Step 1: Login Ubuntu 16.04 host machine(or in Ubuntu docker container) and download flexbuild
+   $ cd flexbuild
+   $ source setup.env
+
+ - Step 2: Download prebuilt bootpartition and components tarballs
+   $ wget http://www.nxp.com/lgfiles/sdk/<lsdk-version>/bootpartition_arm64_lts_4.14.tgz
+  or wget http://www.nxp.com/lgfiles/sdk/<lsdk-version>/bootpartition_arm64_lts_4.9.tgz
+   $ wget http://www.nxp.com/lgfiles/sdk/<lsdk-version>/app_components_arm64.tgz
+   <lsdk-version> can be lsdk1706, lsdk1709, lsdk1712, lsdk1803, lsdk1806, lsdk1809, etc.
+
+ - Step 3: Locally generate Ubuntu userland with preconfigured packages, untar prebuilt components tarball and merge it into the userland
+   $ flex-builder -i mkrfs -a arm64
+   $ tar xvzf app_components_arm64.tgz -C build/apps
+   $ tar xvzf arm64-modules-<kernel_version>.tgz -C build/rfs/rootfs_ubuntu_bionic_arm64/lib/modules
+   $ flex-builder -i merge-component -a arm64
+
+ - Step 4: Install LSDK distro onto SD/USB/SATA storage drive from host machine
+   $ flex-installer -b bootpartition_arm64_lts_<version>.tgz -r build/rfs/rootfs_ubuntu_<codename>_arm64 -m <machine> -d /dev/sdX
+   
+   Note:  The SD/USB/SATA storage drive in the Linux host machine will be called /dev/sdX, where X is a letter such as a, b, c ...
+   Be very careful to choose the correct device name because data on this device will be replaced.
+   After the commands above complete, remove the SD/USB/SATA storage drive from the Linux host and connect it to the target board.
+   It is assumed that the board has a working U-Boot, perhaps from a prior software release.
+   Power on the board and press a key if necessary to get a U-Boot prompt, then system will automatically boot Ubuntu distro.
+          
+
+
+How to build LSDK from scratch with flex-builder
+--------------------------------------------------------------------------------------------------------------------------------------
+   Syntax:  flex-builder -m <machine> [ -b <boottype> ] [ -a <arch> ]
+   example:
+   $ cd flexbuild
+   $ source setup.env
+   $ flex-builder -m ls1043ardb -a arm64  # autobuild all images (uboot, linux, apps, rootfs) for arm64 ls1043ardb
+   Please refer to docs/flexbuild_usage.txt for more usages.
+
+
+
+How to program LSDK composite firmware to NOR/QSPI/SD flash device
+--------------------------------------------------------------------------------------------------------------------------------------
+ - For SD/eMMC card
+     On all platforms:
+     $ wget http://www.nxp.com/lgfiles/sdk/lsdk1809/firmware_<machine>_uboot_sdboot.img
+     => tftp a0000000 firmware_<machine>_uboot_sdboot.img
+     or
+     => load mmc 0:2 a0000000 firmware_<machine>_uboot_sdboot.img
+     Under U-Boot:
+     => mmc write a0000000 8 1fff8
+     Under Linux:
+     $ flex-installer -f firmware_<machine>_uboot_sdboot.img -d /dev/mmcblk0 (or /dev/sdx)
+
+ - For IFC-NOR flash
+     On LS1043ARDB, LS1021ATWR
+     => load mmc 0:2 a0000000 firmware_<machine>_uboot_norboot.img
+     or tftp a0000000 firmware_<machine>_uboot_norboot.img
+     To program alternate bank:
+     => protect off 64000000 +$filesize && erase 64000000 +$filesize && cp.b a0000000 64000000 $filesize
+     To program current bank
+     => protect off 60000000 +$filesize && erase 60000000 +$filesize && cp.b a0000000 60000000 $filesize
+
+     On LS2088ARDB:
+     => load mmc 0:2 a0000000 firmware_ls2088ardb_uboot_norboot.img
+     or tftp a0000000 firmware_ls2088ardb_uboot_norboot.img
+     To program alternate bank:
+     => protect off 584000000 +$filesize && erase 584000000 +$filesize && cp.b a0000000 584000000 $filesize
+     To program current bank:
+     => protect off 580000000 +$filesize && erase 580000000 +$filesize && cp.b a0000000 580000000 $filesize
+
+ - For QSPI flash
+     On LS1012ARDB, LS1046ARDB, LS1088ARDB, LS1088ARDB-PB
+     => load mmc 0:2 a0000000 firmware_<machine>_uboot_qspiboot.img
+     or tftp a0000000 firmware_<machine>_uboot_qspiboot.img
+     => sf probe 0:1
+     => sf erase 0 +$filesize && sf write 0xa0000000 0 $filesize
+
+
+
+How to program LSDK separate image to different bank of NOR/QSPI flash device
+-------------------------------------------------------------------------------------------------------------------------------------
+     In case user needs to flash different image (e.g. rcw/pbi, u-boot, ppa, dtb, kernel, etc) to current or other bank to evaluate
+     certain feature on Layerscape board, for example, to evaluate TDM feature with the non-default rcw_1600_qetdm.bin on LS1043ARDB,
+     for example, run as below:
+     => setenv bd_type mmc
+     => setenv bd_part 0:2
+     => setenv bank other
+     => ls $bd_type $bd_part flash_images/ls1043ardb/rcw
+     => setenv img rcw
+     => setenv rcw_img flash_images/ls1043ardb/rcw/RR_FQPP_1455/rcw_1600_qetdm.bin
+     => load $bd_type $bd_part $load_addr flash_images.scr
+     => source $load_addr
+        Starting to Program the other bank of nor flash according to LSDK standard flash map:
+        Using bd_type = mmc
+        Using bd_part = 0:2
+        Using img = rcw
+        Using addr_rcw 0x64000000 for rcw_img flash_images/ls1043ardb/rcw/RR_FQPP_1455/rcw_1600_qetdm.bin
+        192 bytes read in 211 ms (0 Bytes/s)
+        Un-Protected 1 sectors
+        Erased 1 sectors
+        Copy to Flash... 9done
+        Success: flashed flash_images/ls1043ardb/rcw/RR_FQPP_1455/rcw_1600_qetdm.bin
+
+     Similarly, to evaluate LS2088A rev1.1 running at 2.0GHz with a different RCW image from the default one, follow example as below:
+     => setenv bd_type usb
+     => setenv bank current
+     => setenv img rcw
+     => setenv rcw_img flash_images/ls2088ardb/rcw/rev1.1/FFFFFFFF_PP_HH_0x2a_0x41/rcw_2000.bin
+     => load $bd_type 0:2 $load_addr flash_images.scr
+     => source $load_addr
+
+     - To flash single image, set u-boot environment variable img to one of following: rcw, uboot, ppa, mcfw, mcdpc, mcdpl, fman, qe, pfe, phy, dtb or kernel
+     - To flash all images to current or other bank, set u-boot environment variable img to all by command 'setenv img all'
+       You can override the default setting of variable bd_part, flash_type, rcw_img, uboot_img, ppa_img, dtb_img, kernel_itb,
+       qe_img, fman_img, phy_img, mcfw_img, mcdpl_img, mcdpc_img before running source $load_addr if necessary.
+
+
+
+
+How to install LSDK distro onto SD/USB/SATA storage drive with flex-installer
+--------------------------------------------------------------------------------------------------------------------------------------
+    - Scenario 1: Install LSDK distro from Host machine
+      Plug SD/USB/SATA storage drive to Linux Host machine
+      Prerequisites: non-root users need achieve sudo permission by adding '<user-name> ALL=(ALL) NOPASSWD: ALL' in /etc/sudoers.
+      $ flex-installer -b bootpartition_arm64_lts_<version>.tgz -r rootfs_ubuntu_bionic_arm64_<timestamp>.tgz -m <machine> -d /dev/sdx
+
+    - Scenario 2: Install LSDK distro directly on target board
+      1. Plug SD/USB/SATA storage drive to QorIQ target board
+      2. Download prebuilt image by 'wget http://www.nxp.com/lgfiles/sdk/lsdk1809/lsdk_linux_arm64_tiny.itb'
+         or locally build it by command 'flex-builder -i mklinux -a arm64' to generate lsdk_linux_arm64_tiny.itb and
+	 put lsdk_linux_arm64_tiny.itb to tftp server directory.
+      3. Load lsdk_linux_arm64_tiny.itb to RAM and run it as below
+         For arm64 QorIQ board:
+         => tftp a0000000 lsdk_linux_arm64_tiny.itb
+         => bootm a0000000#<board-name>
+         <board-name> can be: ls1012ardb, ls1012afrwy, ls1043ardb, ls1046ardb, ls1088ardb, ls2088ardb
+         For arm32 QorIQ board:
+         => tftp a0000000 lsdk_linux_arm32_tiny.itb
+         => bootm a0000000#<board-name>
+         <board-name> can be: ls1012ardb, ls1012afrwy, ls1021atwr, ls1043ardb, ls1046ardb
+         After booting and login the Tiny Linux distro on QorIQ board, do as below:
+         step 1:  flex-installer -i pf -d /dev/sdx (or /dev/mmcblk0)
+         step 2:  cd /run/media/{sdx3 or mmcblk0p3}, then download distro images to this partition
+         step 3:  flex-installer -b bootpartition_arm64_<version>.tgz -r rootfs_ubuntu_bionic_arm64_<timestamp>.tgz -d /dev/mmcblk0 (or sdx)
+	 (Note: option '-m <machine>' must be specified only in case UEFI is used as bootloader)
+    
+    Power on or reboot target board after finishing the distro installation,  QorIQ machine will enter bootloader(U-Boot or UEFI)
+    and automatically scan distro bootscript from SD/USB/SATA storage drive and automatically boot Ubutnu distro if distro
+    bootscript is found, otherwise it will fall back to boot lsdk_linux_<arch>_tiny.itb from NOR/QSPI/SD flash media.

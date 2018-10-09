@@ -1,0 +1,74 @@
+# [general]
+machine=ls1088ardb
+
+# [firmware_images]
+rcw_qspi=build/firmware/rcw/ls1088ardb/FCQQQQQQQQ_PPP_H_0x1d_0x0d/rcw_1600_qspi.bin
+rcw_qspi_sec=build/firmware/rcw/ls1088ardb/FCQQQQQQQQ_PPP_H_0x1d_0x0d/rcw_1600_qspi_sec.bin
+rcw_sd=build/firmware/rcw/ls1088ardb/FCQQQQQQQQ_PPP_H_0x1d_0x0d/rcw_1600_sd.bin
+uboot_qspiboot=build/firmware/u-boot/ls1088ardb/uboot_ls1088ardb_qspi.bin
+uboot_sdboot=build/firmware/u-boot/ls1088ardb/uboot_ls1088ardb_sdcard_qspi.bin
+uboot_qspiboot_sec=build/firmware/u-boot/ls1088ardb/uboot_ls1088ardb_qspi_SECURE_BOOT.bin
+uboot_spl=build/firmware/u-boot/ls1088ardb/uboot_ls1088ardb_sdcard_spl.bin
+uboot_dtb=build/firmware/u-boot/ls1088ardb/uboot_ls1088ardb_sdcard_dtb.bin
+uboot_sdboot_sec=build/firmware/u-boot/ls1088ardb/uboot_ls1088ardb_sdcard_qspi_SECURE_BOOT.bin
+ppa=build/firmware/ppa/soc-ls1088/ppa.itb
+secureboot_headers_qspi=build/firmware/secboot_hdrs/ls1088ardb/secboot_hdrs_qspiboot.bin
+secureboot_headers_sd=build/firmware/secboot_hdrs/ls1088ardb/secboot_hdrs_sdboot.bin
+phy_firmware=build/firmware/qoriq-firmware-cortina/cs4315-cs4340-PHY-ucode.txt
+dpaa2_mc_fw=build/firmware/qoriq-mc-binary/ls1088a/mc*.itb
+dpaa2_mc_dpc=build/firmware/mc-utils/config/ls1088a/RDB/custom/dpc-bman-4M.0x1D-0x0D.dtb
+dpaa2_mc_dpl=build/firmware/mc-utils/config/ls1088a/RDB/dpl-eth.0x1D_0x0D.dtb
+
+# [linux, dtb, rfs]
+kernel_img=build/linux/kernel/arm64/Image
+device_tree=build/linux/kernel/arm64/fsl-ls1088a-rdb.dtb
+ramdiskrfs=packages/rfs/ramdiskrfs/ramdisk_rootfs_arm64.ext4.gz
+kernelrfs_continuous=yes
+
+
+# [distro autoboot script]
+uboot_scr=build/firmware/u-boot/ls1088ardb/ls1088ardb_boot.scr
+bootscript_dec=build/firmware/u-boot/ls1088ardb/ls1088ardb_dec_boot.scr
+bootscript_enforce=build/firmware/u-boot/ls1088ardb/ls1088ardb_enforce_boot.scr
+
+securevalidate="setenv secureboot_validate 'load \$devtype \$devnum:\$devpart_boot \$kernelheader_addr_r /secboot_hdrs/ls1088ardb/hdr_linux.out; load \$devtype \$devnum:\$devpart_boot \$fdtheader_addr_r /secboot_hdrs/ls1088ardb/hdr_dtb.out; esbc_validate \$kernelheader_addr_r; esbc_validate \$fdtheader_addr_r'"
+
+securevalidate_enc="setenv secureboot_validate 'load \$devtype \$devnum:\$devpart_boot \$kernelheader_addr_r /secboot_hdrs/ls1088ardb/hdr_linux.out; esbc_validate \$kernelheader_addr_r;load \$devtype \$devnum:\$devpart_boot \$fdtheader_addr_r /secboot_hdrs/ls1088ardb/hdr_dtb.out; esbc_validate \$fdtheader_addr_r; size \$devtype \$devnum:\$devpart_boot $kernel_image; echo Encapsulating linux image;setenv key_addr 0x87000000; mw \$key_addr $key_id_1;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_2;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_3;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_4;blob enc \$kernel_addr_r \$load_addr \$filesize \$key_addr; setexpr blobsize \$filesize + 0x30;echo Saving encrypted linux ;save \$devtype \$devnum:\$devpart_boot \$load_addr $kernel_image \$blobsize;size \$devtype \$devnum:\$devpart_boot $dtb;echo Encapsulating dtb image; blob enc \$fdt_addr_r \$load_addr \$filesize \$key_addr; setexpr blobsize \$filesize + 0x30;echo Saving encrypted dtb; save \$devtype \$devnum:\$devpart_boot \$load_addr $dtb \$blobsize; size \$devtype \$devnum:\$devpart_boot /ls1088ardb_dec_boot.scr; load \$devtype \$devnum:\$devpart_boot \$load_addr /ls1088ardb_dec_boot.scr; echo replacing Bootscript; save \$devtype \$devnum:\$devpart_boot \$load_addr /ls1088ardb_boot.scr \$filesize;size \$devtype \$devnum:\$devpart_boot /secboot_hdrs/ls1088ardb/hdr_ls1088ardb_bs_dec.out; load \$devtype \$devnum:\$devpart_boot \$load_addr /secboot_hdrs/ls1088ardb/hdr_ls1088ardb_bs_dec.out ;echo Replacing bootscript header; save \$devtype \$devnum:\$devpart_boot \$load_addr /hdr_ls1088ardb_bs.out \$filesize;reset;'"
+
+securevalidate_dec="setenv secureboot_validate 'size \$devtype \$devnum:\$devpart_boot $kernel_image;setexpr imgsize \$filesize - 0x30 ;echo Decapsulating linux kernel_image; setenv key_addr 0x87000000; mw \$key_addr $key_id_1;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_2;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_3;setexpr \$key_addr \$key_addr + 0x4; mw \$key_addr $key_id_4; blob dec \$kernel_addr_r \$load_addr \$imgsize \$key_addr; cp.b \$load_addr \$kernel_addr_r \$filesize ;size \$devtype \$devnum:\$devpart_boot $dtb;setexpr imgsize \$filesize - 0x30 ;echo Decapsulating dtb image; blob dec \$fdt_addr_r \$load_addr \$imgsize \$key_addr; cp.b \$load_addr \$fdt_addr_r \$filesize ; '"
+
+securevalidate_fix="setenv secureboot_validate 'load \$devtype \$devnum:2 \$kernelheader_addr_r /secboot_hdrs/ls1088ardb/hdr_linux.out; esbc_validate \$kernelheader_addr_r;load \$devtype \$devnum:2 \$fdtheader_addr_r /secboot_hdrs/ls1088ardb/hdr_dtb.out; esbc_validate \$fdtheader_addr_r; load \$devtype \$devnum:2 \$initramfsheader_addr_r /secboot_hdrs/ls1088ardb/hdr_initramfs.out; esbc_validate \$initramfsheader_addr_r; size \$devtype \$devnum:2 /ls1088ardb_enforce_boot.scr; load \$devtype \$devnum:2 \$load_addr /ls1088ardb_enforce_boot.scr; echo Replacing Bootscript; save \$devtype \$devnum:2 \$load_addr /ls1088ardb_boot.scr \$filesize;size \$devtype \$devnum:2 /secboot_hdrs/ls1088ardb/hdr_ls1088ardb_bs_enf.out; load \$devtype \$devnum:2 \$load_addr /secboot_hdrs/ls1088ardb/hdr_ls1088ardb_bs_enf.out ;echo Replacing bootscript header; save \$devtype \$devnum:2 \$load_addr /hdr_ls1088ardb_bs.out \$filesize; ' setenv othbootargs 'ima_tcb ima_appraise=fix ima_appraise_tcb evm=fix enforcing=0 '"
+
+securevalidate_enforce="setenv secureboot_validate 'load \$devtype \$devnum:2 \$kernelheader_addr_r /secboot_hdrs/ls1088ardb/hdr_linux.out; esbc_validate \$kernelheader_addr_r;load \$devtype \$devnum:2 \$fdtheader_addr_r /secboot_hdrs/ls1088ardb/hdr_dtb.out; esbc_validate \$fdtheader_addr_r; load \$devtype \$devnum:2 \$initramfsheader_addr_r /secboot_hdrs/ls1088ardb/hdr_initramfs.out; esbc_validate \$initramfsheader_addr_r; ' setenv othbootargs 'ima_tcb ima_appraise=enforce ima_appraise_tcb enforcing=1 '"
+
+distroboot=\
+'env exists dtb || setenv dtb fsl-ls1088a-rdb.dtb;'\
+'env exists kernel_image || setenv kernel_image Image;'\
+'env exists devpart_boot || setenv devpart_boot 2;'\
+'env exists devpart_root || setenv devpart_root 3;'\
+'part uuid $devtype $devnum:$devpart_root partuuidr;'\
+'setenv bootargs console=ttyS0,115200 earlycon=uart8250,mmio,0x21c0500 root=PARTUUID=$partuuidr rw rootwait iommu.passthrough=1 default_hugepagesz=2m hugepagesz=2m hugepages=256 $othbootargs;'\
+'load $devtype $devnum:$devpart_boot $kernel_addr_r $kernel_image;'\
+'load $devtype $devnum:$devpart_boot $fdt_addr_r $dtb;'\
+'env exists secureboot && echo validating secureboot && run secureboot_validate;'\
+'booti $kernel_addr_r - $fdt_addr_r'
+
+distroboot_ima=\
+'env exists dtb || setenv dtb fsl-ls1088a-rdb.dtb;'\
+'env exists kernel_image || setenv kernel_image Image;'\
+'env exists devpart_boot || setenv devpart_boot 2;'\
+'env exists devpart_root || setenv devpart_root 3;'\
+'part uuid $devtype $devnum:$devpart_root partuuidr;'\
+'load $devtype $devnum:$devpart_boot $kernel_addr_r $kernel_image;'\
+'load $devtype $devnum:$devpart_boot $fdt_addr_r $dtb;'\
+'setenv initramfs_addr_r 0xb0000000; setenv initramfsheader_addr_r 0x80300000;'\
+'load $devtype $devnum:$devpart_boot $initramfs_addr_r initramfs.img;'\
+'env exists secureboot && echo validating secureboot && run secureboot_validate;'\
+'setenv bootargs console=ttyS0,115200 earlycon=uart8250,mmio,0x21c0500 root=PARTUUID=$partuuid3 rw rootwait iommu.passthrough=1 default_hugepagesz=2m hugepagesz=2m hugepages=256 $othbootargs;'\
+'booti $kernel_addr_r $initramfs_addr_r $fdt_addr_r'
+
+
+# [secure boot scripts in cst]
+nor_script=scripts/platforms/ls2088_1088_nor.sh
+qspi_script=scripts/platforms/ls1088_qspi.sh
+sd_script=scripts/platforms/ls1088_ls2088_sd.sh

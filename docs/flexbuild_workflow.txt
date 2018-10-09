@@ -1,0 +1,64 @@
+Flexbuild Work Flow                                                                                
+                                                                                                   
++--------------------------------+    +--------------+    +---------------------------------------+
+|Firmware Repo(packages/firmware)|    |              |    |   Generated Images   (build/images)   |
+|                                |--->|              |    |                                       |
+|uboot,uefi,rcw,ppa,fman,pfe,    |    |              |    |flash_images.scr                       |
+|mc,qe,dpl-examples,etc          |    |              |    |<arch>-modules-<version>.tgz           |
++--------------------------------+    |              |    |lsdk_linux_<arch>_tiny.itb             |
+                                      |              |    |rootfs_ubuntu_<codename>_<arch>.tgz    |
++--------------------------------+    |              |--->|rootfs_debian_<codename>_<arch>.tgz    |
+|Linux Repo (packages/linux)     |--->|              |    |rootfs_centos_<version>_<arch>.tgz     |
+| support dual LTS versions      |    |              |    |rootfs_buildroot_<arch>_tiny.gz        |
++--------------------------------+    |              |    |firmware_<machine>_uboot_<boottype>.img|
+                                      |              |    |firmware_<machine>_uefi_<boottype>.img |
+                                      |              |    |bootpartition_<arch>_lts_<version>.tgz |
++--------------------------------+    |              |    +---------------------------------------+
+|App Repo (packages/apps)        |    |              |                                             
+|                                |    |              |    +---------------------------------------+
+|fmc,restool,flib,dpdk,ovs-dpdk  |--->|              |    |            RFS (build/rfs)            |
+|dce,aiopsl,dpdk,libpkcs11,ptpd  |    |              |    |                                       |
+|edgescale,secure_obj,ceetm,     |    |              |    |            +-----------------+        |
+|optee_os,optee_client,aiopsl,   |    |              |    |            |Ubuntu (default) |        |
+|ovs-dpdk,pktgen-dpdk,fmlib,etc  |    |              |    |            +-----------------+        |
+|                                |    |              |    |                                       |
++--------------------------------+    |              |    |            +------------+             |
+                                      |              |    |            |Ubuntu-core |             |
++--------------------------------+    |              |    |            +------------+             |
+|    Configurations (configs)    |    |              |    |                                       |
+|                                |    |              |    |            +------------+             |
+|build_lsdk.cfg                  |    |              |    |            |  CentOS    |             |
+|board/<machine>/manifest        |--->|              |    |            +------------+             |
+|linux/linux_<arch>.its          |    | flex-builder |--->|                                       |
+|ubuntu/additional_packages_list |    |              |    |            +------------+             |
+|buildroot/xx_defconfig          |    |              |    |            |  Debian    |             |
+|                                |    |              |    |            +------------+             |
++--------------------------------+    |              |    |                                       |
+                                      |              |    |            +------------+             |
+                                      |              |    |            | Buildroot  |             |
+                                      |              |    |            +------------+             |
++--------------------------------+    |              |    |                                       |
+|   SD/USB/SATA Storage Drive    |    |              |    |            +------------+             |
+|                                |    |              |    |            |  Other     |             |
+|                                |    |              |    |            +------------+             |
+| +---------------+-----------+  |    |              |    |                                       |
+| |Boot Partition |  RootFS   |  |    |              |    +---------------------------------------+
+| |               |           |  |    |              |                      +                      
+| |kernel         |Ubuntu     |  |    |              |    +---------------------------------------+
+| |dtb            |Ubuntu-Core|  |    |              |    |          Boot Partitoion              |
+| |lsdk_linux.itb |Debian     |  |    |              |    |                                       |
+| |distro boot.scr|CentOS     |  |    |              |    |          kernel image                 |
+| |secure headers |Buildroot  |  |    |              |--->|          composite firmware           |
+| |               |           |  |    |              |    |          DTBs                         |
+| +---------------+-----------+  |    |              |    |          secboot_hdrs                 |
+|                                |    |              |    |          distro boot script           |
+|                                |    |              |    |          flash_images                 |
+|                                |    |              |    |                                       |
+|                                |    |              |    |                                       |
++--------------------------------+    +--------------+    +---------------------------------------+
+              ^                                                             |                         
+              |                                                             |                         
++-------------------------------------------------------------------------------------------------+
+|                                    flex-installer                                               |
++-------------------------------------------------------------------------------------------------+
+

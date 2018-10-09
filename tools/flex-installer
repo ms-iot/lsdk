@@ -1,0 +1,402 @@
+#!/bin/bash
+
+# Copyright 2017 NXP
+#
+# SPDX-License-Identifier:      BSD-3-Clause
+#
+# Author: Shengzhou Liu <shengzhou.liu@nxp.com>
+#
+#
+# a utility to install custom Ubuntu/CentOS/Debian to SD/USB/SATA
+# storage disk, run on x86 host machine or ARM arch board.
+#
+
+
+set -e
+
+FIVERSION=1.5.1809
+
+usage ()
+{
+cat <<EOF
+Usage:  flex-installer [ -b <bootpartition> ] [ -r <rootfs> ] [ -f <firmware> ] [ -d <device> ]
+OPTION:
+ -m, --machine         machine name
+ -f, --firmware        firmware to be programmed into SD card
+ -b, --bootpart        boot partition image to be programmed into SD/USB/SATA media
+ -r, --rootfs          distro rootfs image to be programmed into SD/USB/SATA media
+ -d, --device	       device name of SD/USB/SATA disk in Linux
+ -s, --start-block     start block number of SD card for programming firmware
+ -i, --instruction     instruction
+ -p, --parttable       partition-table type can be: "msdos", "gpt", "bsd", "loop", "mac", "msdos" by default if unspecified
+ -v, --version         print version info
+ -h, --help            print help info
+
+Examples:
+- Scenario 1: install from x86 host machine
+  flex-installer -b bootpartition_arm64_lts_4.14.tgz -r build/rfs/rootfs_ubuntu_bionic_arm64 -f firmware_ls1046ardb_uboot_sdboot.img -d /dev/sdX
+
+- Scenario 2: install directly on ARM board
+  step 1: flex-installer -i pf -d /dev/mmcblk0 (or -d /dev/sdX, to partition and format SD/USB/SATA storage drive)
+  step 2: cd /run/media/mmcblk0p3 (or sdx3), then download bootpartition_<arch>_<version>.tgz and rootfs_ubuntu_<version>.tgz to this partition
+  step 3: flex-installer -b bootpartition_<arch>_<version>.tgz -r rootfs_ubuntu_<version>.tgz -d /dev/mmcblk0
+       or flex-installer -b bootpartition_<arch>_<version>.tgz -r rootfs_ubuntu_<version>.tgz -f firmware_ls1046ardb_uboot_sdboot.img -d /dev/mmcblk0
+
+- Scenario 3: Program composite firmware to SD card in case of separate step:
+  flex-installer -f firmware_ls1046ardb_uboot_sdboot.img -d /dev/mmcblk0 (or sdX)
+
+EOF
+    exit $1
+}
+
+if [ -z "$1" -o "$1" = "--help" ] ; then
+	usage
+	exit 1
+fi
+
+
+
+ARGS=`getopt -a -o m:f:b:r:d:s:i:p:hv -l machine:,firmware:,bootpart:,rootfs:,device:,startblock:,instruction:,parttable:,help,version -- "$@"`
+[ $? -ne 0 ] && usage
+eval set -- "${ARGS}"
+while true
+do
+	case "$1" in
+	-m|--machine)
+		machine=$2
+		echo machine = $machine
+		shift
+		;;
+	-f|--firmware)
+		firmware=$2
+		shift
+		;;
+	-s|--startblock)
+		startblock=$2
+		echo startblock: $startblock
+		shift
+		;;
+	-b|--bootpart)
+		bootpart=$2
+		shift
+		;;
+	-r|--rootfs)
+		rootfs=$2
+		shift
+		;;
+	-d|--device)
+		mediadevice=$2
+		shift
+		;;
+	-i|instruction)
+		instruction=$2
+		echo instruction: $instruction
+		shift
+		;;
+        -p|parttable)
+                parttable=$2
+                shift
+                ;;
+        -v|--version)
+                echo flex-installer version: $FIVERSION
+		exit
+                ;;
+	-h|--help)
+		usage
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+shift
+done
+
+ARCH=`uname -m`
+
+search_dev() {
+    devlist=`ls /dev/sd?`
+    for dev in ${devlist}
+    do
+	sdx=`udevadm info -q all -n $dev | grep ID_BUS`
+	disksize=$[ `fdisk -ls $dev` / 1000000 ]
+	if [ $1 = "usb" ] ; then
+	    if [ ${sdx:10:4} = "usb" -a ${disksize} -ge 3 ] ; then
+		devusb=${dev:5:3}
+		echo "USB disk: ${devusb} ${disksize} GB"
+		break
+	    fi
+	elif [ $1 = "sata" ] ; then
+	    if [ ${sdx:10:4} = "ata" -a ${disksize} -ge 8 ] ; then
+		devsata=${dev:5:3}
+		echo "SATA disk: ${devsata} ${disksize} GB"
+		break
+	    fi
+	fi
+    done
+}
+
+get_device_name_in_tinydistro() {
+    if [ "$mediadevice" = "sd" ] ; then
+	if [ ! -b /dev/mmcblk0 ] ; then
+	    echo "SD/MMC device not available"
+	    exit 1
+	else
+	disksize=$[ `fdisk -ls /dev/mmcblk0` / 1000000 ]
+	if [ ${disksize} -ge 3 ] ; then
+	    echo "SD card: ${disksize} GB"
+	else
+	    echo "the size of SD disk is too small: ${disksize}"
+	    exit 1
+	fi
+	devname=mmcblk0
+	fi
+    elif [ "$mediadevice" = "usb" ] ; then
+	search_dev usb
+	devname=${devusb}
+	if [ -z "$devname" ] ; then
+	    echo "USB device not available"
+	    exit 1
+	fi
+    elif [ "$mediadevice" = "sata" ] ; then
+	search_dev sata
+	devname=${devsata}
+	if [ -z "$devname" ] ; then
+	    echo "SATA device not available"
+	    exit 1
+	fi
+    elif echo "$mediadevice" | grep /; then
+	devname=${mediadevice##*/}
+    fi
+
+    if [[ "$devname" = mmcblk* ]] ; then
+	devpartname=${devname}p
+    else
+	devpartname=${devname}
+    fi
+}
+
+get_device_name_on_host() {
+    devname=${mediadevice##*/}
+    if [[ "$devname" = mmcblk* ]] || [[ "$devname" = loop* ]] ; then
+	devpartname=${devname}p
+    else
+	devpartname=${devname}
+    fi
+}
+
+if [ "$ARCH" = "x86_64" -o "$ARCH" = "i686" ] ; then
+    if [ ! -b $mediadevice ]; then
+	echo ERROR: $mediadevice not exist on this host machine!
+	exit 1
+    else
+	echo $mediadevice found!
+    fi
+    get_device_name_on_host
+else
+    get_device_name_in_tinydistro
+fi
+
+if [ -n "$rootfs" ] && [ -d $rootfs ]; then
+    srcrfstype=dir
+elif [ -n "$rootfs" ] && [ -f $rootfs ]; then
+    if file -L $rootfs | grep 'gzip compressed'; then
+	srcrfstype=tgz
+    fi
+elif [ -n "$rootfs" ]; then
+    echo input file $rootfs error!
+    exit
+fi
+
+if [ -n "$bootpart" ] && [ -d $bootpart ]; then
+    srcbootparttype=dir
+elif [ -n "$bootpart" ] && [ -r $bootpart ]; then
+    if file -L $bootpart | grep 'gzip compressed'; then
+        srcbootparttype=tgz
+    fi
+elif [ -n "$bootpart" ]; then
+    echo input file $bootpart error!
+    exit
+fi
+
+if [ -z "$mediadevice" ]; then
+    echo please specify device name
+    exit
+fi
+
+umount_device() {
+    mntnums=`cat /proc/mounts | grep ${devname} | wc -l`
+    if [ $mntnums = 1 ] ; then
+	sudo umount $(cat /proc/mounts | grep  ${devname} | cut -d' ' -f1) || true
+    else
+	for (( i=1; i <= $mntnums; i++ ))
+	do
+	    sudo umount /dev/${devpartname}$i || true
+	done
+    fi
+}
+
+program_firmware_to_sd() {
+    # $1: firmware file,  $2: startblock, $3: device
+    if [ ! -b $3 ]; then
+	echo device $device not found
+	exit
+    fi
+    if [ ! -r $1 ]; then
+	echo firmware $1 not found
+	exit
+    fi
+    echo programming $1 into $3, startblock=$2
+    sudo dd if=$1 of=$3 bs=512 seek=$2
+    echo $1 has been programmed into $3!
+}
+
+partition_format_storage_device() {
+    umount_device
+    echo "Partitioning /dev/$devname ..."
+    sudo parted -s /dev/$devname mklabel $parttable
+
+    # 20MB for EFI partition-1
+    sudo parted -s /dev/$devname mkpart primary 68 88MB
+
+    # 1GB for boot partition-2
+    sudo parted -s /dev/$devname mkpart primary 88MB 1112MB
+
+    # left for rootfs partition-3
+    sudo parted -s /dev/$devname mkpart primary 1112MB 100%
+
+    echo "Formatting partitions ..."
+    umount_device
+    sudo mkfs.vfat -n EFI /dev/${devpartname}1
+    umount_device
+    sudo mkfs.ext4 -F -v -b 4096 -L boot /dev/${devpartname}2
+    umount_device
+    umount_device
+    sudo mkfs.ext4 -F -v -O ^huge_file -b 4096 -L rootfs /dev/${devpartname}3
+
+    if [ ! -d /run/media/${devpartname}1 ] ; then
+	sudo mkdir -p /run/media/${devpartname}1
+    fi
+    if [ ! -d /run/media/${devpartname}2 ] ; then
+	sudo mkdir -p /run/media/${devpartname}2
+    fi
+    if [ ! -d /run/media/${devpartname}3 ] ; then
+	sudo mkdir -p /run/media/${devpartname}3
+    fi
+
+    if ! mount | grep ${devpartname}2; then
+	sudo mount -t ext4 /dev/${devpartname}2  /run/media/${devpartname}2
+    fi
+    if ! mount | grep ${devpartname}3; then
+	sudo mount -t ext4 /dev/${devpartname}3  /run/media/${devpartname}3
+    fi
+    echo partition and format /dev/$devname:   [Done]
+}
+
+
+flex_install_distro() {
+    # install firmware
+    if [ -n "$firmware" ]; then
+        umount_device
+	program_firmware_to_sd $firmware 8 /dev/$devname
+	if ! mount | grep ${devpartname}2; then
+	    sudo mount -t ext4 /dev/${devpartname}2  /run/media/${devpartname}2
+	fi
+	if ! mount | grep ${devpartname}3; then
+	    sudo mount -t ext4 /dev/${devpartname}3  /run/media/${devpartname}3
+	fi
+    fi
+    # install boot partition
+    if [ -n "$bootpart" ] && [ "$srcbootparttype" = "dir" ]; then
+	echo installing bootpartition, please wait ..
+	sudo cp -rfp $bootpart/* /run/media/${devpartname}2
+	echo bootpartition installation:   [Done]
+    fi
+    if [ -n "$bootpart" ] && [ "$srcbootparttype" = "tgz" ]; then
+        echo "installing bootpartition, please wait .."
+        sudo tar xf $bootpart -C /run/media/${devpartname}2
+        echo bootpartition installation:   [Done]
+    fi
+    # install rootfs
+    if [ -n "$rootfs" ] && [ "$srcrfstype" = "dir" ]; then
+	echo installing rootfs, please wait ..
+	sudo cp -rfp $rootfs/* /run/media/${devpartname}3
+	echo rootfs partition installation:   [Done]
+    fi
+    if [ -n "$rootfs" ] && [ "$srcrfstype" = "tgz" ]; then
+	echo installing rootfs, please wait ..
+	sudo tar xf $rootfs -C /run/media/${devpartname}3
+	sudo rm -rf /run/media/${devpartname}3/debootstrap
+	echo rootfs partition installation:   [Done]
+    fi
+    sync
+    if [ -z "$rootfs" ]; then
+	return
+    fi
+    cd ~ && df -h
+
+    echo setting PARTUUID ...
+    uuid2=`lsblk -l --output UUID  /dev/${devpartname}2 | grep -`
+    partuuid2=`lsblk -l --output PARTUUID  /dev/${devpartname}2 | grep -`
+    partuuid3=`lsblk -l --output PARTUUID  /dev/${devpartname}3 | grep -`
+    echo UUID2 = $uuid2
+    echo PARTUUID2 = $partuuid2
+    echo PARTUUID3 = $partuuid3
+
+    sudo chmod 666 /run/media/${devpartname}3/etc/fstab
+    sudo echo "/dev/root         /      ext4    errors=remount-ro 0  1" >> /run/media/${devpartname}3/etc/fstab
+    sudo echo "UUID=$uuid2       /boot  ext4    defaults          0  2" >> /run/media/${devpartname}3/etc/fstab
+    sudo chmod 644 /run/media/${devpartname}3/etc/fstab
+    if [ -f /run/media/${devpartname}3/etc/apt/apt.conf ]; then
+	sudo rm -f /run/media/${devpartname}3/etc/apt/apt.conf
+    fi
+    # configure grub.cfg for UEFI
+    if [ -f /run/media/${devpartname}2/grub/${machine}_grub.cfg ]; then
+	sudo touch /run/media/${devpartname}2/$partuuid2
+	grep -r -l partuuid02 /run/media/${devpartname}2/grub | sudo xargs sed -i "s/partuuid02/$partuuid2/g"
+	grep -r -l partuuid03 /run/media/${devpartname}2/grub | sudo xargs sed -i "s/partuuid03/$partuuid3/g"
+    fi
+
+    if [ -n "$machine" ]; then
+	if ! mount | grep ${devpartname}1; then
+	   sudo mount /dev/${devpartname}1  /run/media/${devpartname}1
+	fi
+	sudo mkdir -p /run/media/${devpartname}1/EFI/BOOT
+	if [ -f /run/media/${devpartname}2/grub/${machine}_grub.cfg ]; then
+	    sudo cp /run/media/${devpartname}2/grub/${machine}_grub.cfg /run/media/${devpartname}1/EFI/BOOT/grub.cfg
+	fi
+	if [ -f /run/media/${devpartname}2/grub/BOOTAA64.EFI ]; then
+	    sudo cp /run/media/${devpartname}2/grub/BOOTAA64.EFI /run/media/${devpartname}1/EFI/BOOT/
+	fi
+    fi
+
+    if grep $uuid2 /run/media/${devpartname}3/etc/fstab 1>/dev/null 2>&1; then
+	echo "$distro_type installation finished successfully"
+    else
+	echo "$distro_type installation failed"
+    fi
+}
+
+
+if [ -z "$parttable" ]; then
+    parttable=msdos
+fi
+
+if [ -n "$firmware" -a -z "$bootpart" -a -z "$rootfs" ]; then
+    program_firmware_to_sd $firmware 8 $mediadevice
+else
+    if [ "$ARCH" = "x86_64" -o "$ARCH" = "i686" ] ; then
+	partition_format_storage_device
+	flex_install_distro
+    elif [ $ARCH = "aarch64" -o $ARCH = "armv7l" ]; then
+	if [ "$instruction" = "pf" ]; then
+	    partition_format_storage_device
+	    cd  /run/media/${devpartname}3
+	elif [ "$instruction" = "install" -o -z "$instruction" ]; then
+	    flex_install_distro
+	else
+	    echo please specify -i argument.
+	    exit
+	fi
+    fi
+fi

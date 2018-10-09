@@ -1,0 +1,363 @@
+Flexbuild Usage
+--------------------------------------------------------------------------------------------------------------------------------------------
+ $ cd flexbuild
+ $ source setup.env
+ 
+ Usage: flex-builder [-c <component>]   [-m <machine>] [-a <arch>] [-b <boottype>] [ -f cfg-file]
+    or: flex-builder [-i <instruction>] [-m <machine>] [-a <arch>] [-b <boottype>] [ -f cfg-file]
+ 
+ Basic example with autobuild:
+  flex-builder -m ls1043ardb -a arm64         # autobuild all firmware, linux, apps components and ubuntu rootfs for ls1043ardb
+ 
+ Basic example with separate command:
+  flex-builder -i mkrfs -a arm64              # generate Ubuntu arm64 userland according to default additional_packages_list_moderate config
+  flex-builder -c linux -a arm64              # build linux with default linux repo and default branch/tag for all arm64 machines
+  flex-builder -c uboot -m ls1046ardb -b sd   # build uboot to generate image for sd boot on ls1046ardb
+  flex-builder -i mklinux -a arm64            # generate lsdk_linux_arm64_tiny.itb with default tiny userland for all arm64 platforms
+  flex-builder -i mkfw -m ls1046ardb -b sd -s # generate composite firmware uboot-based for SD secure boot on ls1088ardb
+  flex-builder -c apps -a arm64               # buld all apps components(dpdk, fmc, restool, optee_os, secure_obj, edgescale, etc) for arm64
+  flex-builder -i mkbootpartition -a arm64    # generate boot partition tarball for ubuntu userland used on all arm64 platforms
+  flex-builder -i merge-component -a arm64    # merge all components packages and kernel modules into target userland
+  flex-builder docker                         # create or attach to Ubuntu docker container to run flexbuild in docker invironment if needed
+ 
+ 
+ Detailed options:
+  -m, --machine         target machine, supports ls1012ardb, ls1012afrwy, ls1021atwr, ls1043ardb, ls1046ardb, ls1088ardb, ls2088ardb, etc
+  -a, --arch            target architect, valid argument: arm64, arm64:be, arm32, arm32:be, ppc64, ppc32, arm64 as default if unspecified
+  -b, --boottype        type of boot media, valid argument: nor, sd, emmc, qspi, nand, default all types if unspecified
+  -c, --component       build all or separate component, valid argument: firmware, apps, linux, uboot, rcw, ppa, mc-utils, restool,
+                        edgescale, fmc, openssl, dpdk, ovs-dpdk, optee_os, libpkcs11, secure_obj, etc, can be built separately
+  -i, --instruction     instruction to do for dedicated purpose, valid argument as below:
+      mkfw              generate composite firmware image for the specified type of nor/qspi/sd boot
+      mkallfw           generate all composite firmware in all nor/qspi/sd boottype for non-secure and secure boot
+      mklinux           generate lsdk_linux_<arch>.itb
+      mkbootpartition   generate boot partition tarball including kernel, dtb, composite firmware, autoboot script, etc
+      mkrfs             generate Ubuntu-based or Buildroot-based target rootfs
+      mkguestrfs        convert raw distro rootfs to ext4 rootfs used for qemu guest
+      mkdistroscr       generate distro autoboot script for all or single machine
+      mkflashscr        generate U-Boot script of flashing images for all machines
+      signimg           sign images and secure boot headers for specified machine
+      merge-component   merge custom component packages and kernel modules into target distro rootfs
+      autobuild-log     autobuild all firmware, kernel, apps components and distro userland with saving logs of autobuild
+      clean             clean all the old images except distro rootfs
+      clean-firmware    clean old firmware images generated in build/firmware directory
+      clean-linux       clean old linux images generated in build/linux directory
+      clean-apps        clean old apps images generated in build/apps directory
+      clean-rfs         clean target rootfs
+      compressrfs       compress distro rootfs as .tgz
+      compressapps      compress apps components as .tgz
+      repo-fetch        fetch single or all git repositories if not exist locally
+      repo-branch       set single or all git repositories to specified branch
+      repo-update       update single or all git repositories to latest HEAD
+      repo-commit       set single or all git repositories to specified commit
+      repo-tag          set single or all git repositories to specified tag
+      list              list enabled config, machines and components
+  -f, --cfgfile         specify config file, build_lsdk.cfg is used by default if only that file exists
+  -B, --buildarg        secondary build argument for misc build commands
+  -r, --rootfs          specify the type of expected target rootfs, valid argument: ubuntu:moderate, ubuntu:tiny, debian:tiny,
+                        buildroot:moderate, buildroot:tiny, buildroot:custom
+  -j, --jobs            number of parallel build jobs, default 16 jobs if unspecified
+  -s, --secure          enable security feature in case of secure boot without IMA/EVM
+  -t, --ima-evm         enable IMA/EVM feature in case of secure boot with IMA/EVM
+  -e, --encapsulation   enable encapsulation and decapsulation feature for secure boot
+  -v, --version         print the version of flexbuild
+  -h, --help            print help info
+ 
+ 
+
+  
+Build Linux
+--------------------------------------------------------------------------------------------------------------------------------------------------
+  - Build linux with default repo and current branch according to default config
+    Syntax:  flex-builder -c linux [ -a <arch> ]
+    example: flex-builder -c linux                           # for arm64 armv8 platforms, little-endian by default
+             flex-builder -c linux -a arm64:be               # for arm64 armv8 platforms, big-endian
+             flex-builder -c linux -a arm32                  # for arm32 armv8 platforms, little-endian by default
+             flex-builder -c linux -a arm32:be               # for arm32 armv8 platforms, big-endian
+             flex-builder -c linux -a arm32 -m ls1021atwr    # for arm32 armv7 platform ls1021atwr
+             flex-builder -c linux -a ppc64                  # for ppc64 platforms, big-endian by default
+             flex-builder -c linux -a ppc32                  # for ppc32 platforms, big-endian by default
+
+
+  - Build linux with the specified kernel repo and branch/tag according to default kernel config
+    Syntax:  flex-builder -c linux:<repo-name>:<branch-name> -a <arch>
+    example: flex-builder -c linux:dash-lts:linux-4.14 -a arm64
+    or
+    Syntax:  flex-builder -c linux:<repo-name>:<tag-name> -a <arch>
+    example: flex-builder -c linux:linux:LSDK-18.03-V4.9 -a arm64
+
+
+  - Build custom linux with the default repo and current branch as per custom config by interactive menu
+    Syntax:  step1: flex-builder -c linux:custom -a <arch>
+             step2: flex-builder -c linux -a <arch>
+  
+  
+  - Build custom linux with the specified kernel repo and branch/tag according to default config and the appended fragment config
+    Syntax:  flex-builder -c linux:<repo-name>:<tag-name> -B fragment:<xx.config> -a <arch>
+    example: flex-builder -c linux:linux:LSDK-18.06-V4.14 -B fragment:lttng.config -a arm64
+             flex-builder -c linux -B fragment:"custom1.config custom2.config"
+  
+    After generating the custom kernel, user can replace the default kernel (named Image for arm64 or uImage.v7/v8 for arm32)
+    with the custom one in /boot directory and update modules in /lib/modules directory in rootfs on target board.
+
+
+
+
+Build U-Boot
+---------------------------------------------------------------------------------------------------------------------------------------
+  - Build U-Boot with default repo and current branch
+    Syntax:  flex-builder -c uboot -m <machine> -b <boottype>
+    example: flex-builder -c uboot -m ls1043ardb -b sd       # build uboot for SD boot on ls1043ardb
+             flex-builder -c uboot -m ls1088ardb -b qspi     # build uboot for QSPI boot on ls1088ardb
+             flex-builder -c uboot -m all                    # build uboot for all machines to generate all nor/sd/qspi boot images
+
+  - Build U-Boot with the specified repo and branch
+    Syntax:  flex-builder -c uboot:<repo-name>:<branch-name> -m <machine> -b <boottype>
+    example: flex-builder -c uboot:dash-uboot:devel -m ls1046ardb -b qspi
+             flex-builder -c uboot:uboot:LSDK-18.03 -m ls2088ardb -b nor
+
+
+
+Build various firmware components
+---------------------------------------------------------------------------------------------------------------------------------------
+  Syntax:  flex-builder -c <component> [ -m <machine> ]
+  example: flex-builder -c firmware -m ls2088ardb          # build all firmware (uboot/uefi, rcw, ppa, etc) for ls2088ardb
+           flex-builder -c firmware -m all                 # build all firmware (uboot/uefi, rcw, ppa, etc) for all machines
+           flex-builder -c rcw                             # build rcw for all machines
+           flex-builder -c rcw -m ls1046ardb               # build rcw only for ls1046ardb
+	   flex-builder -c ppa                             # build ppa for all machines
+           flex-builder -c ppa -m ls2088ardb               # build ppa only for ls2088ardb
+           flex-builder -c ppa-fuse -m ls1043ardb          # build ppa-fuse for ls1043ardb
+	   flex-builder -c ppa-optee -m ls1046ardb         # build ppa with optee enabled for ls1046ardb
+           flex-builder -c qoriq-fm-ucode                  # build fman ucode for relevant machines 
+           flex-builder -c qoriq-qe-ucode                  # build QE/uQE ucode for relevant machines
+           flex-builder -c qoriq-engine-pfe-bin            # build PFE firmare for relevant machines
+           flex-builder -c qoriq-mc-binary                 # build DPAA2 MC firmare for relevant machines
+           flex-builder -c qoriq-firmware-cortina          # build cortina PHY ucode for relevant machines
+
+
+
+Build apps components
+-------------------------------------------------------------------------------------------------------------------------------------
+  Syntax:  flex-builder -c <component> [ -a <arch> ]
+
+  The supported apps components:
+  restool, flib, fmlib, fmc, openssl, odp, ofp, dpdk, pktgen-dpdk, ovs-dpdk, gpp-aioptool, cst, aiopsl, ptpd, ceetm, qbman_userspace,
+  eth-config, crconf, optee_os, optee_client, optee_test, libpkcs11, secure_obj, qoriq-edgescale-eds, qoriq-eds-kubelet, 
+  qoriq-eds-bootstrap, etc
+
+  example: flex-builder -c apps -a arm64                   # build all apps components for all arm64 machines
+           flex-builder -c apps -a arm32                   # build all apps components for all arm32 machines
+           flex-builder -c fmc -a arm64                    # build fmc component to support QorIQ DPAA for arm64 machines
+           flex-builder -c fmc -a arm32                    # build fmc component to support QorIQ DPAA for arm32 machines
+           flex-builder -c dpdk                            # build dpdk component for relevant arm64 machines
+           flex-builder -c ovs-dpdk                        # build ovs-dpdk component for relevant arm64 machines
+           flex-builder -c optee_os                        # build optee_os component for relevant arm64 machines
+           flex-builder -c edgescale                       # build edgescale components (qoriq-edgescale-eds, qoriq-eds-bootstrap, etc)
+
+
+
+Generate composite firmware and misc tarball
+-----------------------------------------------------------------------------------------------------------------------------------------------
+  Syntax:  flex-builder -i <instruction> [ -m <machine> ] [ -b <boottype> ] [ -B <args> ] [ -a <arch> ]
+  example: flex-builder -i mklinux                           # generate lsdk_linux_arm64_tiny.itb
+           flex-builder -i mklinux -a arm32                  # generate lsdk_linux_arm32_tiny.itb
+           flex-builder -i mklinux -r buildroot:imaevm -t    # generate lsdk_linux_arm64_imaevm.itb
+	   flex-builder -i mkfw -m ls1043ardb -b sd          # generate composite firmware_ls1043rdb_uboot_sdboot.img image
+           flex-builder -i mkfw -m ls1046ardb -b qspi        # generate composite firmware_ls1046ardb_uboot_qspiboot.img image
+           flex-builder -i mkfw -m ls2088ardb -b nor         # generate composite firmware_ls2088ardb_uboot_norboot.img image
+           flex-builder -i mkfw -m ls2088ardb -b nor -B uefi # generate composite firmware_ls2088ardb_uefi_norboot.img image
+           flex-builder -i signimg -m ls1046ardb -b sd       # sign images and generate secure boot headers for secure boot on ls1046ardb
+           flex-builder -i mkbootpartition -a arm64          # generate boot partition tarball for all arm64 platforms
+           flex-builder -i merge-component -a arm64          # merge all apps components packages and kernel modules into arm64 rootfs
+           flex-builder -i compressrfs -a arm64              # compress rootfs directory as rootfs_ubuntu_<codename>_arm64_<timestamp>.tgz 
+
+
+
+
+
+Build Distro Root filesystem
+--------------------------------------------------------------------------------------------------------------------------------------------------
+  - Build Ubuntu or Debian rootfs with configurable packages
+    configs/ubuntu/additional_packages_list_moderate is used for generating Ubuntu or Debian rootfs with moderate number of preconfigured packages 
+    configs/ubuntu/additional_packages_list_tiny is used for generating Ubuntu or Debian rootfs with less number of preconfigured packages  
+    
+    Syntax:  flex-builder -i mkrfs [ -r <distro-type>:<distro-scale>:<codename> ] [ -a <arch> ] [ -B <additional_packages_list_name> ]
+    example: flex-builder -i mkrfs -r ubuntu:moderate:xenial -a arm64   # generate arm64 Ubuntu xenial rootfs as per additional_packages_list_moderate
+             flex-builder -i mkrfs -r ubuntu:tiny:bionic -a arm64       # generate arm64 tiny Ubuntu bionic rootfs as per additional_packages_list_tiny
+             flex-builder -i mkrfs -r debian:tiny:stretch -a arm32      # generate arm32 tiny Debian stretch rootfs as per additional_packages_list_tiny
+   User can modify the default additonal packages list for customizing rootfs with various packages.
+   User can create a new list configs/ubuntu/additional_packages_list_custom, run flex-builder -i mkrfs -r ubuntu:custom:<codename> -a <arch>
+   run 'flex-builder -i merge-component -r ubuntu:tiny:bionic -a arm64' to merge linux modules and app components to tiny ubuntu userland.
+   If users want to quickly install a new package to build/rfs/rootfs_ubunutu_bionic_arm64 target userland, run as below
+   $ sudo chroot build/rfs/rootfs_ubunutu_bionic_arm64
+   # apt-get install <package_name>
+
+
+  - Build CentOS rootfs
+    Syntax:  flex-builder -i mkrfs -r centos -a <arch>
+    example: flex-builder -i mkrfs -r centos -a arm64       # generate arm64 CentOS rootfs
+    User can set different version in configs/centos/distro.cfg if necessary.
+    To generate and deploy bootpartition_<arch>_lts_<version>.tgz and rootfs_centos_<version>_<arch>.tgz, build as below:
+    $ flex-builder -i mkbootpartition -a <arch>
+    $ flex-builder -i mkrfs -r centos -a <arch>
+    $ flex-builder -i merge-component -r centos -a <arch>
+    $ flex-builder -i compressrfs -r centos -a <arch>
+    $ flex-installer -b bootpartition_<arch>_lts_<version>.tgz -r rootfs_centos_<version>_<arch>.tgz -d /dev/sdx
+
+  - Build Buildroot-based tiny rootfs with configurable packages
+    configs/buildroot/qoriq_<arch>_moderate_defconfig is used for generating tiny distro rootfs with moderate number of preconfigured packages
+    configs/buildroot/qoriq_<arch>_tiny_defconfig is used for generating tiny distro rootfs with less number of preconfigured packages
+
+    Syntax:  flex-builder -i mkrfs -r buildroot:<distro-scale> -a <arch>
+    example: flex-builder -i mkrfs -r buildroot:tiny -a arm64       # generate arm64 little-endian rootfs as per qoriq_arm64_tiny_defconfig
+             flex-builder -i mkrfs -r buildroot:tiny -a arm64:be    # generate arm64 big-endian rootfs as per qoriq_arm64_be_moderate_defconfig
+             flex-builder -i mkrfs -r buildroot:moderate -a arm64   # generate arm64 little-endian rootfs as per qoriq_arm64_moderate_defconfig
+             flex-builder -i mkrfs -r buildroot:custom -a arm64     # generate arm64 little-endian rootfs with custom config in interactive menu
+             flex-builder -i mkrfs -r buildroot:moderate -a arm32   # generate arm32 little-endian rootfs as per qoriq_arm64_moderate_defconfig
+             flex-builder -i mkrfs -r buildroot:tiny -a ppc32       # generate ppc32 big-endian rootfs as per qoriq_arm64_moderate_defconfig
+             flex-builder -i mkrfs -r buildroot:moderate -a ppc64   # generate ppc64 big-endian rootfs as per qoriq_ppc64_moderate_defconfig
+	     flex-builder -i mkrfs -r buildroot:imaevm -a arm64     # generate arm64 little-endian rootfs as per qoriq_arm64_imaevm_defconfig
+
+
+
+Manage git repositories of various components
+------------------------------------------------------------------------------------------------------------------------------------------------
+  Syntax:  flex-builder -i <instruction> [ -B <args> ]
+  example: flex-builder -i repo-fetch                      # fetch all git repositories of components from remote repos if not exist locally
+           flex-builder -i repo-fetch -B dpdk              # fetch single dpdk component from remote repository if it is not exist locally
+           flex-builder -i repo-branch                     # switch branches of all components to specified branches according to default config
+           flex-builder -i repo-tag                        # switch tags of all components to specified tags according to default config
+           flex-builder -i repo-commit                     # set all components to the specified commmits of current branches
+           flex-builder -i repo-update                     # update all components to the latest TOP commmits of current branches 
+
+
+How to use different build config instead of default build config
+--------------------------------------------------------------------------------------------------------------------------------------
+  Uer can create a custom config file named build_custom.cfg in configs directory, flexbuild will preferentially select build_custom.cfg,
+  otherwise, default config file build_lsdk.cfg will be used, if there are multiple build_xx.cfg config files in configs directory, user
+  can specify the expected one by specifying -f option, e.g. flex-builder -m ls1043ardb -b sd -f build_xx.cfg
+
+
+
+How to add new apps component in Flexbuild
+--------------------------------------------------------------------------------------------------------------------------------------
+  - Add new <component-name> to apps_repo_list and set CONFIG_BUILD_<component-name>=y in configs/build_xx.cfg
+  - Configure url/branch/tag/commit info for new <component_name> in configs/build_xx.cfg, default remote
+    component git repository is specified by GIT_REPOSITORY_URL if <component>_repo_url is not specified, user
+    can directly create the new component git repository in packages/apps directory
+  - Add build target support for the new component in packages/apps/Makefile
+  - Run 'flex-builder -c <component-name> -a <arch>' to build new component
+  - Run 'flex-builder -i merge-component -a <arch>' to merger new component package to distro userland
+
+
+
+
+Set HTTP proxy in case build machine is located in a subnet that needs proxy to access external internet
+--------------------------------------------------------------------------------------------------------------------------------------
+User can set the following HTTP proxy in /etc/profile.d/proxy.sh or ~/.bashrc for permenent
+    export http_proxy="http://<account>:<password>@<domain>:<port>"
+    export https_proxy="http://<account>:<password>@<domain>:<port>"
+    export no_proxy="localhost"
+
+
+For novice users, the following top level command is recommended for automatic build
+-----------------------------------------------------------------------------------------------------------------------------------------------
+  Syntax:  flex-builder -m <machine> [ -b <boottype> ] [ -a <arch> ]
+  example: flex-builder -m ls1043ardb -b sd                # autobuild all images (uboot, kernel, apps, rootfs) for SD boot on ls1043ardb
+           or 
+           flex-builder -m ls1046ardb                      # autobuild all images for sd/qspi/nor boottype on ls1046ardb without saving logs of build
+           or
+           flex-builder -i autobuild-log -a arm64          # autobuild all images for all arm64 machines with all sd/qspi/nor boottype with saving logs
+           or
+           flex-builder all                                # autobuild all images for all arm32 and arm64 machines with all sd/qspi/nor boottype
+
+
+
+For experienced developers, the following separate commands can be used in case of customizing target system
+-----------------------------------------------------------------------------------------------------------------------------------------------
+1. As per various use cases, users can customize different components from default component repo as below:
+   - run flex-builder -i repo-fetch to fetch git repositories of all components from remote repositories
+   - enter concerned component repository (e.g. cd packages/firmware/<uboot-repo>, cd packages/linux/<kernel-repo>, cd packages/apps/dpdk, etc)
+   - select disired git branch/commit/tag as needed, optionally
+   - apply custom patch as needed, optionally
+   - manually modify source code as needed, optionally
+
+2. Run flex-builder commands as needed, for example:
+   flex-builder clean                                      # clean all previously generated images except distro rootfs, optionally
+   flex-builder -i mkfw -m ls1046ardb -b sd -B uboot       # generate deployable composite firmware firmware_ls1046ardb_uboot_sdboot.img
+   flex-builder -i mkfw -m ls1043ardb -b nor -B uefi       # generate deployable composite firmware firmware_ls1043ardb_uefi_norboot.img
+   flex-builder -i mkbootpartition                         # generate deployable bootpartition_arm64_lts_<version>_<timestamp>.tgz
+   flex-builder -i mklinux                                 # generate lsdk_linux_arm64_tiny.itb used for all arm64 platforms
+
+   Generally, the following build sequency of separate commands is recommended (take arm64 ls1046ardb for example):
+   1. flex-builder clean
+   2. flex-builder -c linux:custom                         # optional, in case of needing interactive menu to custom kernel config
+      flex-builder -c linux
+   3. flex-builder -i mkrfs -a arm64                       # generate Ubuntu arm64 rootfs by default
+      or flex-builder -i mkrfs -r debian:tiny:stretch      # generate Debian arm64 rootfs
+      or flex-builder -i mkrfs -r buildroot:custom         # generate Buildroot-based tiny arm64 rootfs with custom packages
+   4. flex-builder -i mkfw -m ls1046ardb -b sd -B uboot
+   5. flex-builder -i mkbootpartition                      # optional 
+   6. flex-builder -c apps                                 # optional
+   7. flex-builder -i merge-component                      # optional, to merge app components into Ubuntu/Debian target rootfs
+   8. flex-builder -i compressrfs                          # optional
+
+3. Finally, install the hybrid Ubuntu distro to SD/USB/SATA storage drive from Linux host machine as below
+   cd build/images
+   flex-installer -b bootpartition_arm64_lts_4.14.tgz -r rootfs_ubuntu_<codename>_arm64_xx.tgz -m ls1046ardb -d /dev/sdx
+   or
+   flex-installer -b bootpartition_arm64_lts_4.14 -r ../../build/rfs/rootfs_ubuntu_<codename>_arm64 -d /dev/sdx
+
+
+
+
+How to add support for a new custom machine in flexbuild based on LSDK release
+-------------------------------------------------------------------------------------------------------------------------
+Assume adding a new custom machine named LS1043AXX based on LS1043A SoC
+1. Run 'flex-builder -i repo-fetch' to fetch all git repositories of LSDK components for the first time
+
+2. Add new machine support in U-Boot, take LSDK-18.03 for example
+   $ cd packages/firmware/u-boot
+   $ git checkout LSDK-18.03 -b LSDK-18.03-LS1043AXX
+   then add U-Boot patches for new machine
+   Assume config file packages/firmware/u-boot/configs/ls1043axx_sdcard_defconfig is added for new machine,
+   and add CONFIG_MACHINE_LS1043AXX=y in configs/build_lsdk.cfg
+   Run 'flex-builder -c uboot -m ls1043axx -b sd' to build uboot image for SD boot on LS1043AXX
+
+3. Add new machine support in Linux kernel, take LSDK-18.03 for example
+   $ cd packages/linux/linux
+   $ git checkout LSDK-18.03-V4.14 -b LSDK-18.03-V4.14-LS1043AXX
+   then add kernel patches for new machine and commit all the patches in this branch and make a tag as below
+   $ git tag LSDK-18.03-V4.14-LS1043AXX
+   Assume a new device tree file ls1043axx.dts is added in packages/linux/linux/arch/arm64/boot/dts directory
+   Add ls1043axx.dtb to ARM64_DTB_LIST in packages/linux/Makefile
+   Run flex-builder -c linux:linux:LSDK-18.03-V4.14-LS1043AXX to build kernel image for new LS1043AXX
+
+
+4. Add configs in flexbuild for new machine
+   - Add ls1043axx node in configs/linux/linux_arm64.its
+   - Set linux_repo_tag to LSDK-18.03-V4.14-LS1043AXX and set u_boot_repo_tag to LSDK-18.03-LS1043AXX in configs/build_lsdk.cfg
+   - set BUILD_DUAL_KERNEL to n if user doesn't need the second version of linux in configs/build_lsdk.cfg
+   - optionally, user can use different memory layout from default settings by modifying them in configs/board/common/memorylayout.cfg
+   - Add manifest for new machine
+     $ mkdir configs/board/ls1043axx
+     $ cp configs/board/ls1043ardb/manifest configs/board/ls1043axx
+     Update the settings in configs/board/ls1043axx/manifest on demand
+     Note: generally, user can reuse the settings of rcw, ppa, fman, qe, eth-phy used for existing ls1043ardb if those components
+           are same for new ls1043axx, otherwise user needs to add new support in packages/firmware/rcw
+   Run flex-builder -i mklinux -a arm64 to generate lsdk_linux_arm64_tiny.itb image
+   Run flex-builder -i mkfw -m ls1043ardb -b sd to generate the shared ppa/rcw/fman/qe/eth-phy images for new ls1043axx
+   Run flex-builder -i mkfw -m ls1043axx -b sd to generate firmware_ls1043axx_uboot_sdboot.img
+   user can boot the new lsdk_linux_arm64_tiny.itb from U-Boot prompt during debugging stage on LS1043AXX machine
+   => tftp a0000000 lsdk_linux_arm64_tiny.itb
+   => bootm a0000000#ls1043axx
+
+5. Build all other images for new custom machine with Ubuntu userland if needed
+   $ flex-builder -i mkrfs -a arm64
+   $ flex-builder -c apps -a arm64
+   $ flex-builder -i mkbootpartition -a arm64
+   $ flex-builder -i merge-component -a arm64
+   $ flex-builder -i compressrfs -a arm64
+   Finally, install bootpartition_arm64_lts_<version>.tgz and rootfs_ubuntu_<codename>_<arch>.tgz to
+   SD/USB/SATA storage drive on LS1043AXX machine by flex-installer.
