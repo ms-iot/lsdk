@@ -56,7 +56,7 @@ ifeq ($(CONFIG_BUILD_LINUX), y)
 	if [ $(DESTARCH) = arm32 ]; then cp $$opdir/arch/$$locarch/boot/uImage \
 	$(FBDIR)/build/linux/$(KERNEL_TREE)/$(DESTARCH)/uImage.$$extname; \
 	cp $$opdir/arch/$$locarch/boot/zImage $(FBDIR)/build/linux/$(KERNEL_TREE)/$(DESTARCH)/zImage.$$extname; fi && \
-	ls $$opdir/arch/$$locarch/boot/$$dtbdir/$$dtbstr | grep -iE 'rdb|frdm|frwy|twr|qds|ds' | xargs -I {} cp {} \
+	ls $$opdir/arch/$$locarch/boot/$$dtbdir/$$dtbstr | grep -iE 'rdb|frdm|frwy|twr|qds|ds|grapeboard' | xargs -I {} cp {} \
 	$(FBDIR)/build/linux/$(KERNEL_TREE)/$(DESTARCH) && \
 	if [ $(DESTARCH) = arm32 ]; then rm -f $(FBDIR)/build/linux/$(KERNEL_TREE)/arm32/fsl-ls2*.dtb; fi && \
 	ls -l $(FBDIR)/build/linux/$(KERNEL_TREE)/$(DESTARCH) && \

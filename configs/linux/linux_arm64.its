@@ -129,6 +129,19 @@
 				algo = "crc32";
 			};
 		};
+
+		grapeboard-dtb {
+			description = "grapeboard-dtb";
+			data = /incbin/("../../build/linux/kernel/arm64/grapeboard.dtb");
+			type = "flat_dt";
+			arch = "arm64";
+			os = "linux";
+			compression = "none";
+			load = <0x90000000>;
+			hash@1 {
+				algo = "crc32";
+			};
+		};
 	};
 
 	configurations {
@@ -181,5 +194,11 @@
 			fdt = "ls1012afrwy-dtb";
 		};
 
+		grapeboard {
+			description = "config for grapeboard";
+			kernel = "kernel";
+			ramdisk = "initrd";
+			fdt = "grapeboard-dtb";
+		};
 	};
 };

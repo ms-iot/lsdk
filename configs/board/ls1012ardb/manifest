@@ -13,7 +13,7 @@ pfe_kernel=build/firmware/qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe*.elf
 
 # [linux, dtb, rfs]
 kernel_img=build/linux/kernel/arm64/Image
-device_tree=build/linux/kernel/arm64/fsl-ls1012a-rdb.dtb
+device_tree=build/linux/kernel/arm64/grapeboard.dtb
 ramdiskrfs=packages/rfs/ramdiskrfs/ramdisk_rootfs_arm64.ext4.gz
 kernelrfs_continuous=yes
 
