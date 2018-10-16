@@ -262,6 +262,10 @@ partition_format_storage_device() {
     # 1GB for boot partition-2
     sudo parted -s /dev/$devname mkpart primary 88MB 1112MB
 
+    # Mark partition 2 as bootable so that U-Boot's 'part list -bootable'
+    # command can find it
+    sudo parted -s /dev/$devname set 1 boot on
+
     # left for rootfs partition-3
     sudo parted -s /dev/$devname mkpart primary 1112MB 100%
 

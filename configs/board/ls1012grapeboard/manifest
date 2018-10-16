@@ -13,7 +13,7 @@ pfe_kernel=build/firmware/qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe*.elf
 
 # [linux, dtb, rfs]
 kernel_img=build/linux/kernel/arm64/Image
-device_tree=build/linux/kernel/arm64/ls1012grapeboard.dtb
+device_tree=build/linux/kernel/arm64/grapeboard.dtb
 ramdiskrfs=packages/rfs/ramdiskrfs/ramdisk_rootfs_arm64.ext4.gz
 kernelrfs_continuous=yes
 
@@ -34,7 +34,7 @@ securevalidate_fix="setenv secureboot_validate 'load \$devtype \$devnum:2 \$kern
 securevalidate_enforce="setenv secureboot_validate 'load \$devtype \$devnum:2 \$kernelheader_addr_r /secboot_hdrs/ls1012grapeboard/hdr_linux.out; esbc_validate \$kernelheader_addr_r;load \$devtype \$devnum:2 \$fdtheader_addr_r /secboot_hdrs/ls1012grapeboard/hdr_dtb.out; esbc_validate \$fdtheader_addr_r; load \$devtype \$devnum:2 \$initramfsheader_addr_r /secboot_hdrs/ls1012grapeboard/hdr_initramfs.out; esbc_validate \$initramfsheader_addr_r; ' setenv othbootargs 'ima_tcb ima_appraise=enforce ima_appraise_tcb enforcing=1 '"
 
 distroboot=\
-'env exists dtb || setenv dtb ls1012grapeboard.dtb;'\
+'env exists dtb || setenv dtb grapeboard.dtb;'\
 'env exists kernel_image || setenv kernel_image Image;'\
 'env exists devpart_boot || setenv devpart_boot 2;'\
 'env exists devpart_root || setenv devpart_root 3;'\

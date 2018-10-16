@@ -132,7 +132,7 @@
 
 		ls1012grapeboard-dtb {
 			description = "ls1012grapeboard-dtb";
-			data = /incbin/("../../build/linux/kernel/arm64/ls1012grapeboard.dtb");
+			data = /incbin/("../../build/linux/kernel/arm64/grapeboard.dtb");
 			type = "flat_dt";
 			arch = "arm64";
 			os = "linux";

@@ -36,6 +36,8 @@ flex-builder -c ppa-optee -m ls1012grapeboard
 
 It will produce the file `build/firmware/ppa/soc-ls1012/ppa_rdb.itb`.
 
+## Updating PPA and OPTEE on NOR Flash
+
 Copy `ppa_rdb.itb` to the root of a FAT-formatted SD card.
 
 Boot into [recovery U-Boot](#Booting-Grapeboard-into-recovery-mode), then run the following u-boot commands:
@@ -55,3 +57,36 @@ PPA Firmware: Version LSDK-18.09-dirty
 SEC Firmware: 'loadables' present in config
 loadables: 'trustedOS@1'
 ```
+
+# Building Linux
+
+```
+flex-builder -c linux -a arm64 -m ls1012grapeboard
+flex-builder -i mkrfs -a arm64
+flex-builder -i mkbootpartition -m ls1012grapeboard -a arm64
+flex-builder -c optee_client -a arm64
+flex-builder -c optee_test -a arm64
+flex-builder -i merge-component -a arm64 -m ls1012grapeboard
+```
+
+## Installing linux on an SD card
+
+You will need a physical linux machine and an 8GB or larger SD card.
+
+Run the following command, where `/dev/sdx` is your SD card. The card will be erased.
+
+```
+flex-installer -b build/images/bootpartition_arm64_<version>.tgz -r build/rfs/rootfs_ubuntu_bionic_arm64 -d /dev/sdx
+```
+
+Unmount and eject the SD card.
+
+```
+udisksctl unmount -b /dev/sdx1
+udisksctl unmount -b /dev/sdx2
+udisksctl unmount -b /dev/sdx3
+udisksctl power-off -b /dev/sdx
+```
+
+Insert the SD card to your grapeboard and power on.
+
