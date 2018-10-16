@@ -186,7 +186,7 @@ generate_qoriq_composite_firmware() {
         fi
     fi
 
-    if [ $DESTARCH = arm32 ] && [ $1 = ls1043ardb -o $1 = ls1046ardb -o $1 = ls1012ardb -o $1 = ls1012afrwy -o $l = grapeboard ]; then
+    if [ $DESTARCH = arm32 ] && [ $1 = ls1043ardb -o $1 = ls1046ardb -o $1 = ls1012ardb -o $1 = ls1012afrwy -o $l = ls1012grapeboard ]; then
 	echo $distroboot | sed -e 's/Image/uImage.v8/g' -e 's/booti/bootm/g' >> $FBDIR/$uboot_scr
 	kernel_img=`echo $kernel_img | sed  -e 's/arm64/arm32/g' -e 's/Image/uImage.v8/g'`
     fi
@@ -565,7 +565,7 @@ generate_distro_bootscr() {
             if [ "$ENCAP" = "y" ] ; then
                 if [ $bootscript_dec != null ] ; then
                     echo $securevalidate_dec > $bootscript_dec.tmp
-                    if [ $DESTARCH = arm32 ] && [ $1 = ls1043ardb -o $1 = ls1046ardb -o $1 = ls1012ardb -o $1 = ls1012afrwy -o $l = grapeboard ]; then
+                    if [ $DESTARCH = arm32 ] && [ $1 = ls1043ardb -o $1 = ls1046ardb -o $1 = ls1012ardb -o $1 = ls1012afrwy -o $l = ls1012grapeboard ]; then
 			echo $distroboot | sed -e 's/Image/uImage.v8/g' -e 's/booti/bootm/g' >> $FBDIR/$uboot_scr.tmp
 			sed -i 's/booti/bootm/g' $bootscript_dec.tmp
                     else
@@ -579,7 +579,7 @@ generate_distro_bootscr() {
 	    elif [ "$IMA_EVM" = "y" ] ; then
                 if [ $bootscript_enforce != null ] ; then
                    echo $securevalidate_enforce > $bootscript_enforce.tmp
-		   if [ $DESTARCH = arm32 ] && [ $1 = ls1043ardb -o $1 = ls1046ardb -o $1 = ls1012ardb -o $1 = ls1012afrwy -o $l = grapeboard ]; then
+		   if [ $DESTARCH = arm32 ] && [ $1 = ls1043ardb -o $1 = ls1046ardb -o $1 = ls1012ardb -o $1 = ls1012afrwy -o $l = ls1012grapeboard ]; then
                         echo $distroboot_ima | sed -e 's/Image/uImage.v8/g' -e 's/booti/bootm/g' >> $FBDIR/$uboot_scr.tmp
                         sed -i 's/booti/bootm/g' $bootscript_enforce.tmp
                     else
@@ -596,7 +596,7 @@ generate_distro_bootscr() {
             fi
 	fi
 
-	if [ $DESTARCH = arm32 ] && [ $1 = ls1043ardb -o $1 = ls1046ardb -o $1 = ls1012ardb -o $1 = ls1012afrwy -o $l = grapeboard ]; then
+	if [ $DESTARCH = arm32 ] && [ $1 = ls1043ardb -o $1 = ls1046ardb -o $1 = ls1012ardb -o $1 = ls1012afrwy -o $l = ls1012grapeboard ]; then
 	    if [ "$IMA_EVM" = "y" ] ; then
 		echo $distroboot_ima | sed -e 's/Image/uImage.v8/g' -e 's/booti/bootm/g' >> $FBDIR/$uboot_scr.tmp
 	    else
@@ -739,9 +739,9 @@ generate_bootpartition_tarball() {
     # install flash images to bootpartition
     if [ "$INSTALL_FLASH_IMAGES" = "y" ]; then
 	if [ $DESTARCH = arm64 -a $MACHINE = all ]; then
-	    brdlist="ls1012ardb ls1012afrwy ls1043ardb ls1046ardb ls1088ardb ls1088ardb_pb ls2088ardb grapeboard"
+	    brdlist="ls1012ardb ls1012afrwy ls1043ardb ls1046ardb ls1088ardb ls1088ardb_pb ls2088ardb ls1012grapeboard"
 	elif [ $DESTARCH = arm32 -a $MACHINE = all ]; then
-	    brdlist="ls1021atwr ls1012ardb ls1012afrwy ls1043ardb ls1046ardb grapeboard"
+	    brdlist="ls1021atwr ls1012ardb ls1012afrwy ls1043ardb ls1046ardb ls1012grapeboard"
 	elif [ $MACHINE != all ]; then
 	    brdlist=$MACHINE
 	fi
@@ -782,7 +782,7 @@ generate_bootpartition_tarball() {
 
 	    # ppa
 	    socname=ls`echo $brd | tr -cd [:digit:]`
-	    if [ ! -f $FBDIR/build/firmware/ppa/soc-$socname/ppa.itb ] && [ $brd != ls1012ardb -a $brd != ls1012afrwy -a $brd != grapeboard ]; then
+	    if [ ! -f $FBDIR/build/firmware/ppa/soc-$socname/ppa.itb ] && [ $brd != ls1012ardb -a $brd != ls1012afrwy -a $brd != ls1012grapeboard ]; then
 		flex-builder -c ppa -f $CONFIGLIST
 	    fi
 	    if [ $brd != ls1021atwr -a -f $FBDIR/build/firmware/ppa/soc-$socname/ppa.itb ]; then
@@ -797,7 +797,7 @@ generate_bootpartition_tarball() {
 		flex-builder -c qoriq-qe-ucode -f $CONFIGLIST
 	    fi
 	    cp -f $FBDIR/build/firmware/qoriq-qe-ucode/*1021*.bin $bootpartdir/flash_images
-	    if [ $brd = ls1012ardb -o $brd = grapeboard ]; then
+	    if [ $brd = ls1012ardb -o $brd = ls1012grapeboard ]; then
 		if [ ! -f $FBDIR/build/firmware/qoriq-engine-pfe-bin/ls1012a/u-boot/pfe_fw_sbl.itb ]; then
 		    flex-builder -c qoriq-engine-pfe-bin -f $CONFIGLIST
 		fi
@@ -1401,7 +1401,7 @@ generate_composite_fw_uboot() {
     for brd in $machinelist; do
         if [ $DESTARCH = arm64 -a $brd = ls1021atwr ]; then continue; fi
         if [ $DESTARCH = arm32 -a $brd != ls1021atwr -a $brd != ls1043ardb -a $brd != ls1046ardb \
-           -a $brd != ls1012ardb -a $brd != ls1012afrwy -a $brd != grapeboard ]; then continue; fi
+           -a $brd != ls1012ardb -a $brd != ls1012afrwy -a $brd != ls1012grapeboard ]; then continue; fi
         for boottype in $boottypelist; do
 	    if [ "$1" = "secureboot" ]; then
 		flex-builder -i mkfw -m $brd -b $boottype -B uboot -s -a $DESTARCH -f $CONFIGLIST
@@ -1667,7 +1667,7 @@ secure_sign_image() {
     cp $FBDIR/$device_tree $FBDIR/packages/apps/cst/uImage.dtb && echo "Copying dtb"
     cp $FBDIR/build/images/lsdk_linux_${DESTARCH}_tiny.itb $FBDIR/packages/apps/cst/kernel.itb && echo "Copying kernel_itb"
     
-    if [ $1 = ls1043ardb -o $1 = ls1046ardb -o $1 = ls1012ardb -o $1 = ls1012afrwy -o $l = grapeboard ] && [ $DESTARCH = arm32 ]; then
+    if [ $1 = ls1043ardb -o $1 = ls1046ardb -o $1 = ls1012ardb -o $1 = ls1012afrwy -o $l = ls1012grapeboard ] && [ $DESTARCH = arm32 ]; then
 	kernelimg=$FBDIR/build/linux/kernel/arm32/uImage.v8
     else
 	kernelimg=$FBDIR/$kernel_img

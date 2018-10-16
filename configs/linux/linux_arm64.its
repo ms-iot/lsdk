@@ -130,9 +130,9 @@
 			};
 		};
 
-		grapeboard-dtb {
-			description = "grapeboard-dtb";
-			data = /incbin/("../../build/linux/kernel/arm64/grapeboard.dtb");
+		ls1012grapeboard-dtb {
+			description = "ls1012grapeboard-dtb";
+			data = /incbin/("../../build/linux/kernel/arm64/ls1012grapeboard.dtb");
 			type = "flat_dt";
 			arch = "arm64";
 			os = "linux";
@@ -194,11 +194,11 @@
 			fdt = "ls1012afrwy-dtb";
 		};
 
-		grapeboard {
-			description = "config for grapeboard";
+		ls1012grapeboard {
+			description = "config for ls1012grapeboard";
 			kernel = "kernel";
 			ramdisk = "initrd";
-			fdt = "grapeboard-dtb";
+			fdt = "ls1012grapeboard-dtb";
 		};
 	};
 };
