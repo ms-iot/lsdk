@@ -80,13 +80,13 @@ flex-builder -c optee_test -a arm64
 flex-builder -i merge-component -a arm64 -m ls1012grapeboard
 ```
 
-This will create a boot partition tarball (`build/images/bootpartition_arm64_<version>.tgz`) and rootfs (`build/rfs/rootfs_ubuntu_bionic_arm64`). Use the `flex-installer` script to apply them to an SD card.
+This will create a boot partition tarball (`build/images/bootpartition_arm64_<version>.tgz`) and rootfs (`build/rfs/rootfs_ubuntu_bionic_arm64`). We will use the `flex-installer` script to apply them to an SD card.
 
 ## Installing Linux to the SD card
 
 You will need a physical linux machine and an 8GB or larger SD card.
 
-Run the following command, where `/dev/sdx` is your SD card. The card will be erased.
+Run the following command, where `/dev/sdx` is your SD card. All data on the card will be lost.
 
 ```
 flex-installer -b build/images/bootpartition_arm64_<version>.tgz -r build/rfs/rootfs_ubuntu_bionic_arm64 -d /dev/sdx
@@ -101,7 +101,7 @@ udisksctl unmount -b /dev/sdx3
 udisksctl power-off -b /dev/sdx
 ```
 
-Insert the SD card to your grapeboard and power on. You should see linux boot. Log in with the following credentials:
+Insert the SD card to your grapeboard and power on. You should see linux boot. The login credentials are:
 ```
 Username: root
 Password: root
@@ -109,11 +109,16 @@ Password: root
 
 # Running OP-TEE tests
 
-This will run the OP-TEE test suite and verify that Linux can talk to OP-TEE.
+This will run the OP-TEE test suite, which will verify that Linux can talk to OP-TEE.
 
 ```
 tee-supplicant &
 xtest -l 0
+```
+
+You should see most of the tests pass:
+
+```
 ...
 +-----------------------------------------------------
 16081 subtests of which 1 failed
