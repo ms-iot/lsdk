@@ -2,19 +2,42 @@ Building for Grapeboard
 ============
 
 This document will walk you through building all components from source for [Scalys Grapeboard](https://www.grapeboard.com/). The components we will build are
- - RCW and PBI script
- - U-Boot
+
+ - RCW, PBL, and U-Boot
  - PPA (Primary Protected Application)
  - OP-TEE
  - Linux
 
-# Building RCW and PBI Script
+# Building RCW, PBL, and U-Boot
 
-Todo.
+U-Boot is built outside the flexbuild environment. Our branch is forked from the `scalys-lsdk-1803` branch of `git://git.scalys.com/lsdk/u-boot`.
 
-# Building U-Boot
+```
+git clone https://github.com/ms-iot/SolidRun-u-boot.git -b ms-iot-scalys-lsdk-1803
+cd SolidRun-u-boot
+export ARCH=aarch64
+export CROSS_COMPILE=aarch64-linux-gnu-
+make grapeboard_pcie_qspi_defconfig
+make
+```
 
-Todo.
+It will produce a file named `u-boot-with-pbl.bin`. This file must be written to NOR flash.
+
+## Updating U-Boot on NOR Flash
+
+Copy `u-boot-with-pbl.bin` to the root of a FAT-formatted SD card.
+
+Boot into [recovery U-Boot](#booting-grapeboard-into-recovery-mode), then run the following u-boot commands:
+
+```
+mmc rescan
+fatload mmc 0:1 $load_addr u-boot-with-pbl.bin
+sf probe 0:0
+sf erase u-boot 200000
+sf write $load_addr u-boot $filesize
+```
+
+Reset the board. When it reboots, you should see it execute your U-Boot.
 
 # Building PPA and OP-TEE
 
@@ -22,17 +45,17 @@ Todo.
 flex-builder -c ppa-optee -m ls1012grapeboard
 ```
 
-It will produce the file `build/firmware/ppa/soc-ls1012/ppa_rdb.itb`. This file must be written to NOR flash.
+It will produce the file `build/firmware/ppa/soc-ls1012/ppa.itb`. This file must be written to NOR flash.
 
 ## Updating PPA and OP-TEE on NOR Flash
 
-Copy `ppa_rdb.itb` to the root of a FAT-formatted SD card.
+Copy `ppa.itb` to the root of a FAT-formatted SD card.
 
 Boot into [recovery U-Boot](#booting-grapeboard-into-recovery-mode), then run the following u-boot commands:
 
 ```
 mmc rescan
-fatload mmc 0:1 $load_addr ppa_rdb.itb
+fatload mmc 0:1 $load_addr ppa.itb
 sf probe 0:0
 sf erase ppa 100000
 sf write $load_addr ppa $filesize
