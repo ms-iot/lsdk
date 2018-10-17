@@ -47,6 +47,7 @@ distroboot=\
 'booti $kernel_addr_r - $fdt_addr_r'
 
 distroboot_ima=\
+'pfe stop;'\
 'env exists dtb || setenv dtb fsl-ls1012a-rdb.dtb;'\
 'env exists kernel_image || setenv kernel_image Image;'\
 'env exists devpart_boot || setenv devpart_boot 2;'\
