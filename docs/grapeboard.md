@@ -107,6 +107,31 @@ Username: root
 Password: root
 ```
 
+### Enabling network and SSH
+
+Networking is not configured by default. Until we figure out how to provision the image with networking, use the following commands to enable networking. This only needs to be done once.
+
+```
+echo "auto eth0" >> /etc/network/interfaces
+echo "iface eth0 inet dhcp" >> /etc/network/interfaces
+ifup -a
+```
+
+Enable root to login over SSH, and restart SSH server.
+
+```
+echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+service sshd restart
+```
+
+Wait a little bit for the device to acquire an IP address, then run determine the device's IP by running:
+
+```
+ifconfig eth0
+```
+
+You can now SSH into the device using it's IP address, and `root/root` as login credentials.
+
 # Running OP-TEE tests
 
 This will run the OP-TEE test suite, which will verify that Linux can talk to OP-TEE.
