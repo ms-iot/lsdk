@@ -14,6 +14,10 @@ all: setup-repo build-linux
 
 setup-repo:
 	@$(call fetch-git-tree,$(KERNEL_TREE))
+	@if [ ! -f $(KERNEL_TREE)/arch/arm64/boot/dts/freescale/grapeboard.dts ]; then \
+	echo "Patching linux kernel tree with grapeboard patches"; \
+	git -C $(KERNEL_TREE) am $(FBDIR)/patches/grapeboard-linux.patch; \
+	fi; \
 
 build-linux:
 ifeq ($(CONFIG_BUILD_LINUX), y)
