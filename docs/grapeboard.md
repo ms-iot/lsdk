@@ -1,7 +1,7 @@
-Building for Grapeboard
+Getting started on LS1012 Grapeboard
 ============
 
-This document will walk you through building all components from source for [Scalys Grapeboard](https://www.grapeboard.com/). The components we will build are
+This document will walk you through building all components from source and developing OP-TEE TA's for [Scalys Grapeboard](https://www.grapeboard.com/). The components we will build are
 
  - RCW, PBL, and U-Boot
  - PPA (Primary Protected Application)
