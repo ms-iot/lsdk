@@ -10,11 +10,11 @@ This document will walk you through building all components from source and deve
 
 ## Reference
 
- - [Scalys Grapeboard](https://www.grapeboard.com/)
+ - [Scalys Grapeboard Home](https://www.grapeboard.com/)
  - [LSDK (Layerscape SDK)](https://www.nxp.com/products/processors-and-microcontrollers/arm-based-processors-and-mcus/qoriq-layerscape-arm-processors/layerscape-software-development-kit-v18.09:LAYERSCAPE-SDK)
  - [LSDK Documentation (PDF)](https://www.nxp.com/docs/en/supporting-information/LSDK_REV18.09.pdf)
  - [LSDK Git Repositories](https://lsdk.github.io/components.html)
- - [Grapeboard BSP User Guide](https://www.grapeboard.com/wp-content/uploads/2018/10/Scalys_Grapeboard-bsp-user-guide_18102018.pdf)
+ - [Grapeboard BSP User Guide (PDF)](https://www.grapeboard.com/wp-content/uploads/2018/10/Scalys_Grapeboard-bsp-user-guide_18102018.pdf)
 
 # Setting up your Grapeboard
 
@@ -23,10 +23,11 @@ You will need
  - 5-15V power supply
  - micro USB cable
  - 8GB or greater micro SD card
+ - A physical Linux machine with USB port
 
 You will interact with the device over the serial terminal, and eventually the network. U-Boot, PPA, and OP-TEE are stored on on-board NOR flash, and linux will be stored on the SD card.
 
-## Setting up Serial Terminal
+## Serial Terminal
 
 1. Connect the micro USB cable to the micro USB connector (next to the power connector). Your PC should recognize it as a USB/Serial device.
 2. Determine the COM port number from device manager.

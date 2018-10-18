@@ -1,3 +1,5 @@
+[Getting started on LS1012 Grapeboard](docs/grapeboard.md)
+
 Flexbuild Overview
 ---------------------------------------------------------------------------------
 	Flexbuild is a component-oriented build framework and integrated platform
