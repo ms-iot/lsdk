@@ -8,6 +8,52 @@ This document will walk you through building all components from source and deve
  - OP-TEE
  - Linux
 
+## Reference
+
+ - [Scalys Grapeboard](https://www.grapeboard.com/)
+ - [LSDK (Layerscape SDK)](https://www.nxp.com/products/processors-and-microcontrollers/arm-based-processors-and-mcus/qoriq-layerscape-arm-processors/layerscape-software-development-kit-v18.09:LAYERSCAPE-SDK)
+ - [LSDK Documentation (PDF)](https://www.nxp.com/docs/en/supporting-information/LSDK_REV18.09.pdf)
+ - [LSDK Git Repositories](https://lsdk.github.io/components.html)
+ - [Grapeboard BSP User Guide](https://www.grapeboard.com/wp-content/uploads/2018/10/Scalys_Grapeboard-bsp-user-guide_18102018.pdf)
+
+# Setting up your Grapeboard
+
+You will need
+
+ - 5-15V power supply
+ - micro USB cable
+ - 8GB or greater micro SD card
+
+You will interact with the device over the serial terminal, and eventually the network. U-Boot, PPA, and OP-TEE are stored on on-board NOR flash, and linux will be stored on the SD card.
+
+## Setting up Serial Terminal
+
+1. Connect the micro USB cable to the micro USB connector (next to the power connector). Your PC should recognize it as a USB/Serial device.
+2. Determine the COM port number from device manager.
+3. Open a putty terminal at 115200 8N1. You must go to **Connection -> Serial** and set **Flow control** to **None**.
+![Putty Flow Control](putty-flow-control.png)
+4. Power on the board by plugging in the power supply.
+
+You should see spew from the bootloader in your putty terminal.
+
+```
+U-Boot 2017.11-00009-g5418f2df0d5-dirty (Oct 16 2018 - 17:37:42 -0700)
+
+SoC:  LS1012AE Rev1.0 (0x87040010)
+Clock Configuration:
+       CPU0(A53):800  MHz
+       Bus:      250  MHz  DDR:      1000 MT/s
+Reset Configuration Word (RCW):
+       00000000: 08000008 00000000 00000000 00000000
+       00000010: 33050000 c000400c 40000000 00001800
+       00000020: 00000000 00000000 00000000 000047d0
+       00000030: 00000000 10c02120 00000096 00000000
+I2C:   ready
+...
+```
+
+Congratulations, you're ready to run commands at the U-Boot prompt.
+
 # Building RCW, PBL, and U-Boot
 
 U-Boot is built outside the flexbuild environment. Our branch is forked from the `scalys-lsdk-1803` branch of `git://git.scalys.com/lsdk/u-boot`. Our branch is `https://github.com/ms-iot/SolidRun-u-boot.git` branch `ms-iot-grapeboard`.
@@ -41,7 +87,15 @@ Reset the board. When it reboots, you should see it execute your U-Boot.
 
 # Building PPA and OP-TEE
 
-OP-TEE is forked from `https://source.codeaurora.org/external/qoriq/qoriq-components/optee_os` tag `tags/LSDK-18.09`. OP-TEE is built from `https://github.com/ms-iot/optee_os.git` branch `grapeboard`.
+OP-TEE is forked from `https://source.codeaurora.org/external/qoriq/qoriq-components/optee_os` tag `tags/LSDK-18.09`. Our branch is `https://github.com/ms-iot/optee_os.git` branch `grapeboard`.
+
+Everything but U-Boot is built in the "flexbuild" environment, an abomination developed by NXP. This repository is forked from flexbuild. The first step in running commands in flexbuild is to cd to the root of this repository and source the `setup.env` script.
+
+```
+source setup.env
+```
+
+Then, you can run `flex-builder` to build the PPA+OP-TEE combined FIT image.
 
 ```
 flex-builder -c ppa-optee -m ls1012grapeboard
@@ -105,7 +159,7 @@ udisksctl unmount -b /dev/sdx3
 udisksctl power-off -b /dev/sdx
 ```
 
-Insert the SD card to your grapeboard and power on. You should see linux boot. The login credentials are:
+Insert the SD card to your grapeboard and power on. You should see linux boot. You can log in and interact with the device over the serial terminal. The login credentials are:
 ```
 Username: root
 Password: root
