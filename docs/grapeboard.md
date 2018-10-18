@@ -156,6 +156,67 @@ You should see most of the tests pass:
 TEE test application done!
 ```
 
+# Developing OP-TEE TA's
+
+1. Build optee\_os and optee\_client.
+```
+flex-builder -c optee_os -m ls1012grapeboard -a arm64
+flex-builder -c optee_client -m ls1012grapeboard -a arm64
+```
+1. Set required environment variables.
+```
+export TA_DEV_KIT_DIR=$PWD/packages/apps/optee_os/out/arm-plat-ls/export-ta_arm64/
+export TEEC_EXPORT=$PWD/build/apps/components_arm64
+export HOST_CROSS_COMPILE=aarch64-linux-gnu-
+```
+1. Change directories outside this repository, and clone `optee_examples`.
+```
+cd ..
+git clone https://github.com/linaro-swg/optee_examples.git
+```
+1. Build the hello\_world TA and host app.
+```
+cd optee\_examples/hello\_world
+make
+```
+1. Copy host executable and TA to target.
+```
+scp host/optee\_example\_hello\_world root@<ip>:~
+scp ta/*.ta root@<ip>:~
+```
+1. On the target, copy the `.ta` file to `/lib/optee_armtz`
+```
+cp *.ta /lib/optee\_armtz
+```
+1. On the target, open a separate SSH window, and start the supplicant
+```
+tee-supplicant
+```
+1. On the target, run the host executable.
+```
+./optee_example_hello_world
+```
+
+You should see the following printed from the host executable:
+```
+root@localhost:~# ./optee_example_hello_world
+Invoking TA to increment 42
+TA incremented value to 43
+```
+
+And the following from the supplicant window:
+```
+root@localhost:~# tee-supplicant
+D/TA:  TA_CreateEntryPoint:39 has been called
+D/TA:  TA_OpenSessionEntryPoint:68 has been called
+I/TA:  Hello World!
+D/TA:  inc_value:105 has been called
+I/TA:  Got value: 42 from NW
+I/TA:  Increase value to: 43
+I/TA:  Goodbye!
+D/TA:  TA_DestroyEntryPoint:50 has been called
+```
+
 # Booting Grapeboard into recovery mode
 
 These instructions taken from section 5.3 of the [Grapeboard BSP User Guide](https://www.grapeboard.com/wp-content/uploads/2018/05/scalys_grapeboard_bsp_user_guide_180518.pdf).
