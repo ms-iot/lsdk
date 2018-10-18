@@ -10,10 +10,10 @@ This document will walk you through building all components from source for [Sca
 
 # Building RCW, PBL, and U-Boot
 
-U-Boot is built outside the flexbuild environment. Our branch is forked from the `scalys-lsdk-1803` branch of `git://git.scalys.com/lsdk/u-boot`.
+U-Boot is built outside the flexbuild environment. Our branch is forked from the `scalys-lsdk-1803` branch of `git://git.scalys.com/lsdk/u-boot`. Our branch is `https://github.com/ms-iot/SolidRun-u-boot.git` branch `ms-iot-grapeboard`.
 
 ```
-git clone https://github.com/ms-iot/SolidRun-u-boot.git -b ms-iot-scalys-lsdk-1803
+git clone https://github.com/ms-iot/SolidRun-u-boot.git -b ms-iot-grapeboard
 cd SolidRun-u-boot
 export ARCH=aarch64
 export CROSS_COMPILE=aarch64-linux-gnu-
@@ -40,6 +40,8 @@ sf write $load_addr u-boot $filesize
 Reset the board. When it reboots, you should see it execute your U-Boot.
 
 # Building PPA and OP-TEE
+
+OP-TEE is forked from `https://source.codeaurora.org/external/qoriq/qoriq-components/optee_os` tag `tags/LSDK-18.09`. OP-TEE is built from `https://github.com/ms-iot/optee_os.git` branch `grapeboard`.
 
 ```
 flex-builder -c ppa-optee -m ls1012grapeboard
