@@ -159,10 +159,10 @@ TEE test application done!
 # Developing OP-TEE TA's
 
 1. Build optee\_os and optee\_client.
-
+	```
 	flex-builder -c optee_os -m ls1012grapeboard -a arm64
 	flex-builder -c optee_client -m ls1012grapeboard -a arm64
-
+	```
 1. Set required environment variables.
 
 	export TA_DEV_KIT_DIR=$PWD/packages/apps/optee_os/out/arm-plat-ls/export-ta_arm64/
