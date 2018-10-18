@@ -134,7 +134,7 @@ loadables: 'trustedOS@1'
 
 # Building Linux
 
-Linux is the combination of NXP's layerscape fork (`https://source.codeaurora.org/external/qoriq/qoriq-components/linux`) and grapeboard patches. Grapeboard patches were taken from `git://git.scalys.com/lsdk/linux` branch `grapeboard-proto`. The patches are stored in this repository at `patches/grapeboard-linux.patch` and are applied to NXP's linux tree at build time.
+Linux is the combination of NXP's layerscape fork (`https://source.codeaurora.org/external/qoriq/qoriq-components/linux` `tags/LSDK-18.09-V4.14`) and grapeboard patches. Grapeboard patches were taken from `git://git.scalys.com/lsdk/linux` branch `grapeboard-proto`. The grapeboard patches have been rebased on top of `tags/LSDK-18.09-V4.14`, and the result is stored at `https://github.com/ms-iot/linux.git` `ms-iot-grapeboard`.
 
 ```
 flex-builder -c linux -a arm64 -m ls1012grapeboard
