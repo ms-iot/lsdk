@@ -55,6 +55,12 @@ I2C:   ready
 
 Congratulations, you're ready to run commands at the U-Boot prompt.
 
+# Install prerequisites
+
+```
+sudo apt install build-essential gcc-aarch64-linux-gnu u-boot-tools device-tree-compiler
+```
+
 # Building RCW, PBL, and U-Boot
 
 U-Boot is built outside the flexbuild environment. Our branch is forked from the `scalys-lsdk-1803` branch of `git://git.scalys.com/lsdk/u-boot`. Our branch is `https://github.com/ms-iot/SolidRun-u-boot.git` branch `ms-iot-grapeboard`.
