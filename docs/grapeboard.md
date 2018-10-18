@@ -71,6 +71,8 @@ loadables: 'trustedOS@1'
 
 # Building Linux
 
+Linux is the combination of NXP's layerscape fork (`https://source.codeaurora.org/external/qoriq/qoriq-components/linux`) and grapeboard patches. Grapeboard patches were taken from `git://git.scalys.com/lsdk/linux` branch `grapeboard-proto`. The patches are stored in this repository at `patches/grapeboard-linux.patch` and are applied to NXP's linux tree at build time.
+
 ```
 flex-builder -c linux -a arm64 -m ls1012grapeboard
 flex-builder -i mkrfs -a arm64
