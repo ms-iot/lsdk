@@ -163,36 +163,43 @@ TEE test application done!
 flex-builder -c optee_os -m ls1012grapeboard -a arm64
 flex-builder -c optee_client -m ls1012grapeboard -a arm64
 ```
+
 1. Set required environment variables.
 ```
 export TA_DEV_KIT_DIR=$PWD/packages/apps/optee_os/out/arm-plat-ls/export-ta_arm64/
 export TEEC_EXPORT=$PWD/build/apps/components_arm64
 export HOST_CROSS_COMPILE=aarch64-linux-gnu-
 ```
+
 1. Change directories outside this repository, and clone `optee_examples`.
 ```
 cd ..
 git clone https://github.com/linaro-swg/optee_examples.git
 ```
+
 1. Build the hello\_world TA and host app.
 ```
-cd optee\_examples/hello\_world
+cd optee_examples/hello_world
 make
 ```
+
 1. Copy host executable and TA to target.
 ```
-scp host/optee\_example\_hello\_world root@<ip>:~
+scp host/optee_example_hello_world root@<ip>:~
 scp ta/*.ta root@<ip>:~
 ```
-1. On the target, copy the `.ta` file to `/lib/optee_armtz`
+
+1. On the target, copy the `.ta` file to `/lib/optee_armtz`.
 ```
-cp *.ta /lib/optee\_armtz
+cp *.ta /lib/optee_armtz
 ```
-1. On the target, open a separate SSH window, and start the supplicant
+
+1. On the target, open a separate SSH window, and start the supplicant.
 ```
 tee-supplicant
 ```
-1. On the target, run the host executable.
+
+1. In another window on the target, run the host executable.
 ```
 ./optee_example_hello_world
 ```
