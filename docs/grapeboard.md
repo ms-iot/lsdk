@@ -124,7 +124,7 @@ echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 service sshd restart
 ```
 
-Wait a little bit for the device to acquire an IP address, then run determine the device's IP by running:
+Wait a little bit for the device to acquire an IP address, then determine the device's IP by running:
 
 ```
 ifconfig eth0
