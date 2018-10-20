@@ -29,7 +29,7 @@ You will interact with the device over the serial terminal, and eventually the n
 
 ## Serial Terminal
 
-1. Connect the micro USB cable to the micro USB connector (next to the power connector). Your PC should recognize it as a USB/Serial device.
+1. Connect the micro USB cable to the micro USB connector (next to the power connector). Your PC should recognize it as a USB/Serial device. If it does not, you can try the driver [here](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers).
 2. Determine the COM port number from device manager.
 3. Open a putty terminal at 115200 8N1. You must go to **Connection -> Serial** and set **Flow control** to **None**.
 ![Putty Flow Control](putty-flow-control.png)
@@ -58,7 +58,8 @@ Congratulations, you're ready to run commands at the U-Boot prompt.
 # Install prerequisites
 
 ```
-sudo apt install build-essential gcc-aarch64-linux-gnu u-boot-tools device-tree-compiler
+sudo apt install build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu u-boot-tools device-tree-compiler
+
 ```
 
 # Building RCW, PBL, and U-Boot
@@ -94,11 +95,12 @@ Reset the board. When it reboots, you should see it execute your U-Boot.
 
 # Building PPA and OP-TEE
 
-NXP maintains an OP-TEE fork at `https://source.codeaurora.org/external/qoriq/qoriq-components/optee_os`, which is up to date with `https://github.com/OP-TEE/optee_os` as of tags/LSDK-18.09`. We build OP-TEE out of `https://github.com/OP-TEE/optee_os` branch `ms-iot`.
+NXP maintains an OP-TEE fork at `https://source.codeaurora.org/external/qoriq/qoriq-components/optee_os`, which is up to date with `https://github.com/OP-TEE/optee_os` as of tags/LSDK-18.09`. We build OP-TEE out of `https://github.com/ms-iot/optee_os.git` branch `ms-iot`. The flexbuild enviorment described bellow will clone this correct branch of OP-TEE for you.
 
-Everything but U-Boot is built in the "flexbuild" environment, an abomination developed by NXP. This repository is forked from flexbuild. The first step in running commands in flexbuild is to cd to the root of this repository and source the `setup.env` script.
+Everything but U-Boot is built in the "flexbuild" environment, an abomination developed by NXP. The LSKD repository is forked from flexbuild. The first step in running commands in flexbuild is to cd to the root of this repository and source the `setup.env` script.
 
 ```
+cd lskd
 source setup.env
 ```
 
@@ -127,14 +129,14 @@ sf write $load_addr ppa $filesize
 Reset the board. When it reboots, you should see output like the following, which indicates that you successfully updated PPA and OP-TEE.
 
 ```
-PPA Firmware: Version LSDK-18.09-dirty
+PPA Firmware: Version LSDK-18.09
 SEC Firmware: 'loadables' present in config
 loadables: 'trustedOS@1'
 ```
 
 # Building Linux
 
-Linux is the combination of NXP's layerscape fork (`https://source.codeaurora.org/external/qoriq/qoriq-components/linux` `tags/LSDK-18.09-V4.14`) and grapeboard patches. Grapeboard patches were taken from `git://git.scalys.com/lsdk/linux` branch `grapeboard-proto`. The grapeboard patches have been rebased on top of `tags/LSDK-18.09-V4.14`, and the result is stored at `https://github.com/ms-iot/linux.git` `ms-iot-grapeboard`.
+Linux is the combination of NXP's layerscape fork (`https://source.codeaurora.org/external/qoriq/qoriq-components/linux` `tags/LSDK-18.09-V4.14`) and grapeboard patches. Grapeboard patches were taken from `git://git.scalys.com/lsdk/linux` branch `grapeboard-proto`. The grapeboard patches have been rebased on top of `tags/LSDK-18.09-V4.14`, and the result is stored at `https://github.com/ms-iot/linux.git` branch `ms-iot-grapeboard`.
 
 ```
 flex-builder -c linux -a arm64 -m ls1012grapeboard
