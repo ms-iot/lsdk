@@ -23,7 +23,7 @@ You will need
  - 5-15V power supply
  - micro USB cable
  - 8GB or greater micro SD card
- - A physical Linux machine with USB port
+ - A physical machine with USB port running [Ubuntu 18.04 LTS](http://releases.ubuntu.com/18.04/)
 
 You will interact with the device over the serial terminal, and eventually the network. U-Boot, PPA, and OP-TEE are stored on on-board NOR flash, and linux will be stored on the SD card.
 
