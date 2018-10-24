@@ -100,6 +100,7 @@ NXP maintains an OP-TEE fork at `https://source.codeaurora.org/external/qoriq/qo
 Everything but U-Boot is built in the "flexbuild" environment, an abomination developed by NXP. The LSKD repository is forked from flexbuild. The first step in running commands in flexbuild is to cd to the root of this repository and source the `setup.env` script.
 
 ```
+git clone https://github.com/ms-iot/lsdk.git
 cd lskd
 source setup.env
 ```
