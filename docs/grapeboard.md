@@ -160,6 +160,8 @@ Run the following command, where `/dev/sdx` is your SD card. All data on the car
 flex-installer -b build/images/bootpartition_arm64_<version>.tgz -r build/rfs/rootfs_ubuntu_bionic_arm64 -d /dev/sdx
 ```
 
+If you receive the error `mkfs.vfat: unable to open /dev/sdx1: No such file or directory`, but are able to view the directory in your terminal, add `sleep 5` to `tools/flex-installer` after `echo "Formatting partitions ..."` and before `sudo mkfs.vfat -n EFI /dev/${devpartname}1`
+
 Unmount and eject the SD card.
 
 ```
