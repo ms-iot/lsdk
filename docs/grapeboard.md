@@ -71,21 +71,21 @@ git clone https://github.com/ms-iot/SolidRun-u-boot.git -b ms-iot-grapeboard
 cd SolidRun-u-boot
 export ARCH=aarch64
 export CROSS_COMPILE=aarch64-linux-gnu-
-make grapeboard_pcie_qspi_defconfig
+make grapeboard_pcie_qspi_spl_defconfig
 make
 ```
 
-It will produce a file named `u-boot-with-pbl.bin`. This file must be written to NOR flash.
+It will produce a file named `u-boot-with-spl-pbl.bin`. This file must be written to NOR flash.
 
 ## Updating U-Boot on NOR Flash
 
-Copy `u-boot-with-pbl.bin` to the root of a FAT-formatted SD card.
+Copy `u-boot-with-spl-pbl.bin` to the root of a FAT-formatted SD card.
 
 Boot into [recovery U-Boot](#booting-grapeboard-into-recovery-mode), then run the following u-boot commands:
 
 ```
 mmc rescan
-fatload mmc 0:1 $load_addr u-boot-with-pbl.bin
+fatload mmc 0:1 $load_addr u-boot-with-spl-pbl.bin
 sf probe 0:0
 sf erase u-boot 200000
 sf write $load_addr u-boot $filesize
