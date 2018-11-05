@@ -13,19 +13,10 @@
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wenum-compare"
 _Static_assert(
-	PTA_CYRES_GET_PRIVATE_KEY_SIZE == TA_CYRES_TEST_GET_PRIVATE_KEY_SIZE,
-	"Incorrect command value");
-_Static_assert(
 	PTA_CYRES_GET_PRIVATE_KEY == TA_CYRES_TEST_GET_PRIVATE_KEY,
 	"Incorrect command value");
 _Static_assert(
-	PTA_CYRES_GET_PUBLIC_KEY_SIZE == TA_CYRES_TEST_GET_PUBLIC_KEY_SIZE,
-	"Incorrect command value");
-_Static_assert(
 	PTA_CYRES_GET_PUBLIC_KEY == TA_CYRES_TEST_GET_PUBLIC_KEY,
-	"Incorrect command value");
-_Static_assert(
-	PTA_CYRES_GET_CERT_CHAIN_SIZE == TA_CYRES_TEST_GET_CERT_CHAIN_SIZE,
 	"Incorrect command value");
 _Static_assert(
 	PTA_CYRES_GET_CERT_CHAIN == TA_CYRES_TEST_GET_CERT_CHAIN,
@@ -114,6 +105,13 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx, uint32_t cmd_id,
 {
 	struct sess_ctx *ctx = (struct sess_ctx *)sess_ctx;
 
+	printf("Param types: 0x%x\n", param_types);
+
+	if (params[0].memref.size == 0) {
+		params[0].memref.size = 256;
+		return TEE_ERROR_SHORT_BUFFER;
+	}
+
 	/* pass through to PTA_CYRES without modification */
 	return TEE_InvokeTACommand(
 			ctx->cyres_pta_sess_handle,
@@ -122,6 +120,5 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx, uint32_t cmd_id,
 			param_types,
 			params,
 			NULL);     // returnOrigin
-
 }
 
