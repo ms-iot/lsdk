@@ -95,7 +95,7 @@ Reset the board. When it reboots, you should see it execute your U-Boot.
 
 # Building PPA and OP-TEE
 
-NXP maintains an OP-TEE fork at `https://source.codeaurora.org/external/qoriq/qoriq-components/optee_os`, which is up to date with `https://github.com/OP-TEE/optee_os` as of tags/LSDK-18.09`. We build OP-TEE out of `https://github.com/ms-iot/optee_os.git` branch `ms-iot`. The flexbuild enviorment described bellow will clone this correct branch of OP-TEE for you.
+NXP maintains an OP-TEE fork at `https://source.codeaurora.org/external/qoriq/qoriq-components/optee_os`, which is up to date with `https://github.com/OP-TEE/optee_os` as of tags/LSDK-18.09`. We build OP-TEE out of `https://github.com/ms-iot/optee_os.git` branch `ms-iot-security`. The flexbuild enviorment described bellow will clone this correct branch of OP-TEE for you.
 
 Everything but U-Boot is built in the "flexbuild" environment, an abomination developed by NXP. The LSKD repository is forked from flexbuild. The first step in running commands in flexbuild is to cd to the root of this repository and source the `setup.env` script.
 
