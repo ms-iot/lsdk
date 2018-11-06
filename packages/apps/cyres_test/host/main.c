@@ -216,7 +216,7 @@ int main(void)
 	test_get_private_key(&sess);
 	test_get_public_key(&sess);
 	test_get_cert_chain(&sess);
-	test_get_seal_key(&sess);
+	//test_get_seal_key(&sess);
 
 	TEEC_CloseSession(&sess);
 	TEEC_FinalizeContext(&ctx);
