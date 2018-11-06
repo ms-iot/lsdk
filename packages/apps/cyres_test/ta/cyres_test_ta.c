@@ -95,6 +95,22 @@ void TA_CloseSessionEntryPoint(void *sess_ctx)
 	TEE_Free(ctx);
 }
 
+static void cleanup_temp_buffers(uint32_t param_types,
+		TEE_Param params[TEE_NUM_PARAMS], int index)
+{
+	int i;
+	for (i = 0; i < index; i++) {
+		switch (TEE_PARAM_TYPE_GET(param_types, i)) {
+		case TEE_PARAM_TYPE_MEMREF_OUTPUT:
+			TEE_Free(params[i].memref.buffer);
+			params[i].memref.buffer = NULL;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
 /*
  * Called when a TA is invoked. sess_ctx hold that value that was
  * assigned by TA_OpenSessionEntryPoint(). The rest of the paramters
@@ -103,22 +119,67 @@ void TA_CloseSessionEntryPoint(void *sess_ctx)
 TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx, uint32_t cmd_id,
 		uint32_t param_types, TEE_Param params[TEE_NUM_PARAMS])
 {
+	TEE_Result res;
+	int i;
 	struct sess_ctx *ctx = (struct sess_ctx *)sess_ctx;
+	TEE_Param pta_params[TEE_NUM_PARAMS];
 
-	printf("Param types: 0x%x\n", param_types);
+	memcpy(pta_params, params, sizeof(pta_params));
 
-	if (params[0].memref.size == 0) {
-		params[0].memref.size = 256;
-		return TEE_ERROR_SHORT_BUFFER;
+	/*
+	 * Output buffers need to be proxied. Other buffer types may
+	 * also need to be proxied, but output is the only type currently
+	 * tested.
+	 */
+	for (i = 0; i < TEE_NUM_PARAMS; i++) {
+		switch (TEE_PARAM_TYPE_GET(param_types, i)) {
+		case TEE_PARAM_TYPE_MEMREF_OUTPUT:
+			pta_params[i].memref.buffer = TEE_Malloc(
+				pta_params[i].memref.size, 0);
+
+			if (!pta_params[i].memref.buffer) {
+				EMSG("Failed to allocate proxy buffer for "
+				     "param %d, size %d",
+				     i, pta_params[i].memref.size);
+
+				cleanup_temp_buffers(
+					param_types, pta_params, i);
+
+				return TEE_ERROR_OUT_OF_MEMORY;
+			}
+			break;
+		default:
+			break;
+		}
 	}
 
 	/* pass through to PTA_CYRES without modification */
-	return TEE_InvokeTACommand(
+	res = TEE_InvokeTACommand(
 			ctx->cyres_pta_sess_handle,
 			0,          // cancellationRequestTimeout
 			cmd_id,
 			param_types,
-			params,
+			pta_params,
 			NULL);     // returnOrigin
+
+	/* copy output buffers back to user */
+	for (i = 0; i < TEE_NUM_PARAMS; i++) {
+		switch (TEE_PARAM_TYPE_GET(param_types, i)) {
+		case TEE_PARAM_TYPE_MEMREF_OUTPUT:
+			memcpy(params[i].memref.buffer,
+			       pta_params[i].memref.buffer,
+			       params[i].memref.size);
+
+			TEE_Free(pta_params[i].memref.buffer);
+			pta_params[i].memref.buffer = params[i].memref.buffer;
+		default:
+			break;
+		}
+	}
+
+	/* ensure that any value types get returned to user */
+	memcpy(params, pta_params, sizeof(pta_params));
+
+	return res;
 }
 
