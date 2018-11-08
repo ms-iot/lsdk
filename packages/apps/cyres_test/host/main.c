@@ -115,7 +115,7 @@ void query_and_print_string(TEEC_Session *sess, uint32_t commandID)
 		goto end;
 	}
 
-	printf("%s\n", str);
+	printf("string (length %ld):\n%s\n", strlen(str), str);
 
 end:
 	if (str)
@@ -216,7 +216,7 @@ int main(void)
 	test_get_private_key(&sess);
 	test_get_public_key(&sess);
 	test_get_cert_chain(&sess);
-	test_get_seal_key(&sess);
+	//test_get_seal_key(&sess);
 
 	TEEC_CloseSession(&sess);
 	TEEC_FinalizeContext(&ctx);
