@@ -115,7 +115,7 @@ void query_and_print_string(TEEC_Session *sess, uint32_t commandID)
 		goto end;
 	}
 
-	printf("%s\n", str);
+	printf("string (length %ld):\n%s\n", strlen(str), str);
 
 end:
 	if (str)
