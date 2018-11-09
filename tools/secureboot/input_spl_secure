@@ -1,0 +1,7 @@
+PLATFORM=LS1012
+ESBC=0
+ENTRY_POINT=10000000
+PRI_KEY=srk.pri
+PUB_KEY=srk.pub
+IMAGE_1={u-boot-spl.bin, 10000000, ffffffff}
+OUTPUT_HDR_FILENAME=hdr_spl.out

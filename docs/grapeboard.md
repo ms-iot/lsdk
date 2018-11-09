@@ -295,3 +295,5 @@ These instructions taken from section 5.3 of the [Grapeboard BSP User Guide](htt
 
 You can now issue commands at the U-Boot prompt.
 
+# Secure Boot
+For documentation about enabling secure boot on the Grapeboard please see [grapeboard_secureboot.md](grapeboard_secureboot.md)
