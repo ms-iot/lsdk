@@ -566,6 +566,22 @@ ifeq ($(CONFIG_BUILD_QORIQ_EDGESCALE), y)
 	 cd qoriq-eds-bootstrap && $(MAKE) install INSTALL_DIR=$(DESTDIR) ARCH=$$arch && $(call fbprint_d,"qoriq-eds-bootstrap")
 endif
 
+.PHONY: optee_ta_ftpm
+optee_ta_ftpm:
+ifeq ($(CONFIG_BUILD_OPTEE), y)
+ifeq ($(CONFIG_BUILD_OPTEE_TA_FTPM), y)
+ifeq ($(DESTARCH),arm64)
+	@$(call fbprint_b,"optee_ta_ftpm")
+	@$(call fetch-git-tree,ftpm)
+	cd ftpm/Samples/ARM32-FirmwareTPM/optee_ta && git submodule init && git submodule update && \
+	TA_CPU=cortex-a53 TA_CROSS_COMPILE=$(CROSS_COMPILE) TA_DEV_KIT_DIR=$(FBDIR)/packages/apps/optee_os/out/arm-plat-ls/export-ta_arm64/ $(MAKE) && \
+	mkdir -p $(DESTDIR)/lib/optee_armtz && \
+	cp out/fTPM/bc50d971-d4c9-42c4-82cb-343fb7f37896.ta $(DESTDIR)/lib/optee_armtz/ && \
+	$(call fbprint_d,"optee_ta_ftpm")
+endif
+endif
+endif
+
 
 repo_fetch:
 	@echo -e "\nfetch apps repositories ..."
