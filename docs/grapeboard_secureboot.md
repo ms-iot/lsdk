@@ -14,7 +14,7 @@ The LS1012a has two options for enabling secure boot:
 	* This is **not recommended** during development on the Grapeboard because it will prevent boot for the push-button recovery firmware.
 
 ## Environment Setup
-In order to generate an OTPMK, create public/private key pairs, and sign firmware for secure boot you need NXP's QorIQ Code Signing Tool (CST). This is built automatically by LSDK in `lsdk/packages/apps/cst` but you can also build it standalone:
+NXP's QorIQ Code Signing Tool (CST) is used to generate OTPMKs, create public/private key pairs, and sign firmware for secure boot. CST is built automatically by LSDK and placed in `lsdk/packages/apps/cst` but you can also build it standalone:
 
 ```bash
 git clone -b LSDK-18.09 https://source.codeaurora.org/external/qoriq/qoriq-components/cst/
