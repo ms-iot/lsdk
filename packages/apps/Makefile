@@ -293,6 +293,8 @@ ifeq ($(DESTARCH),arm64)
 		done;\
 	else\
              if [ "ls1088ardb_pb" = $(MACHINE) ]; then brd=ls1088ardb; else brd=$(MACHINE); fi && \
+	     git -C $(FBDIR)/packages/apps/optee_os submodule init;\
+	     git -C $(FBDIR)/packages/apps/optee_os submodule update;\
 	     cd $(FBDIR)/packages/apps/optee_os && $(MAKE) CFG_ARM64_core=y PLATFORM=ls-$$brd ARCH=arm;\
 		$(CROSS_COMPILE)\objcopy -v -O binary out/arm-plat-ls/core/tee.elf out/arm-plat-ls/core/tee_$(MACHINE).bin;\
 	     if [ $(MACHINE) = ls1012afrwy ]; then \
