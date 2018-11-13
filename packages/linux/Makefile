@@ -36,6 +36,7 @@ ifeq ($(CONFIG_BUILD_LINUX), y)
 	if [ "`echo $(BUILDARG) | cut -d: -f1`" = "fragment" ]; then mergeconfig=`echo $(BUILDARG) | cut -d: -f2`; \
 	echo -e "\n$(KERNEL_TREE): Total Config List = $(KERNEL_CFG) $$mergeconfig\n" && \
 	$(MAKE) $$mergeconfig -C $(KERNEL_PATH) O=$$opdir; fi && \
+	if [ "$(DESTARCH)" = "arm64" -a "$(CONFIG_TCG_TPM)" = "y" ]; then sed -i 's/# CONFIG_TCG_TPM is not set/CONFIG_TCG_TPM=y\nCONFIG_HW_RANDOM_TPM=y\nCONFIG_TCG_FTPM_OPTEE=m\nCONFIG_TCG_TIS=n\nCONFIG_TCG_TIS_SPI=n\nCONFIG_TCG_TIS_I2C_ATMEL=n\nCONFIG_TCG_TIS_I2C_INFINEON=n\nCONFIG_TCG_TIS_I2C_NUVOTON=n\nCONFIG_TCG_ATMEL=n\nCONFIG_TCG_INFINEON=n\nCONFIG_TCG_XEN=n\nCONFIG_TCG_CRB=n\nCONFIG_TCG_VTPM_PROXY=n\nCONFIG_TCG_TIS_ST33ZP24_I2C=n\nCONFIG_TCG_TIS_ST33ZP24_SPI=n\nCONFIG_TRUSTED_KEYS=n/' $$opdir/.config; fi && \
 	if [ "$(ENDIANTYPE)" = "be" ]; then sed -i 's/# CONFIG_CPU_BIG_ENDIAN is not set/CONFIG_CPU_BIG_ENDIAN=y/' $$opdir/.config; \
 	echo Big-Endian enabled!; fi && $(MAKE) -j$(JOBS) all -C $(KERNEL_PATH) O=$$opdir && \
 	if [ $(DESTARCH) = arm32 ]; then $(MAKE) -j$(JOBS) uImage LOADADDR=80008000 -C $(KERNEL_PATH) O=$$opdir; fi && \
