@@ -145,6 +145,7 @@ flex-builder -i mkrfs -a arm64
 flex-builder -i mkbootpartition -m ls1012grapeboard -a arm64
 flex-builder -c optee_client -a arm64
 flex-builder -c optee_test -a arm64
+flex-builder -c optee_ta_ftpm -a arm64
 flex-builder -i merge-component -a arm64 -m ls1012grapeboard
 ```
 
