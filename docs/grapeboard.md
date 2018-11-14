@@ -298,3 +298,10 @@ You can now issue commands at the U-Boot prompt.
 
 # Secure Boot
 For documentation about enabling secure boot on the Grapeboard please see [grapeboard_secureboot.md](grapeboard_secureboot.md)
+
+# fTPM 
+In order to use fTPM TPM driver, please start tee-supplicant and load the driver first:
+```
+tee-supplicant &
+modprobe tpm_ftpm_optee
+```
