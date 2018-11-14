@@ -151,8 +151,9 @@ void test_get_seal_key(TEEC_Session *sess)
 
 	memset(&op, 0, sizeof(op));
 	op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_OUTPUT,
-					 TEEC_MEMREF_TEMP_INPUT,
-					 TEEC_NONE, TEEC_NONE);
+					 TEEC_NONE,
+					 TEEC_NONE,
+					 TEEC_NONE);
 
 	op.params[0].tmpref.buffer = &seal_key;
 	op.params[0].tmpref.size = sizeof(seal_key);
@@ -170,6 +171,39 @@ void test_get_seal_key(TEEC_Session *sess)
 	}
 
 	printf("Seal key:\n"
+	       "0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+		seal_key[0],
+		seal_key[1],
+		seal_key[2],
+		seal_key[3],
+		seal_key[4],
+		seal_key[5],
+		seal_key[6],
+		seal_key[7]);
+
+	/* invoke again with non-null selector */
+	memset(&op, 0, sizeof(op));
+	op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_OUTPUT,
+					 TEEC_MEMREF_TEMP_INPUT,
+					 TEEC_NONE,
+					 TEEC_NONE);
+
+	op.params[0].tmpref.buffer = &seal_key;
+	op.params[0].tmpref.size = sizeof(seal_key);
+	op.params[1].tmpref.buffer = "test selector";
+	op.params[1].tmpref.size = sizeof("test selector");
+
+	res = TEEC_InvokeCommand(sess, TA_CYRES_TEST_GET_SEAL_KEY, &op,
+				 &err_origin);
+	if (res != TEEC_SUCCESS) {
+		fprintf(stderr,
+			"TEEC_InvokeCommand failed with code 0x%x (%s)"
+			"origin %s\n",
+			res, str_from_res(res), str_from_origin(err_origin));
+		goto end;
+	}
+
+	printf("Seal key (with selector):\n"
 	       "0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
 		seal_key[0],
 		seal_key[1],
@@ -216,7 +250,7 @@ int main(void)
 	test_get_private_key(&sess);
 	test_get_public_key(&sess);
 	test_get_cert_chain(&sess);
-	//test_get_seal_key(&sess);
+	test_get_seal_key(&sess);
 
 	TEEC_CloseSession(&sess);
 	TEEC_FinalizeContext(&ctx);
