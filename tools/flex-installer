@@ -270,6 +270,7 @@ partition_format_storage_device() {
     sudo parted -s /dev/$devname mkpart primary 1112MB 100%
 
     echo "Formatting partitions ..."
+    sleep 5
     umount_device
     sudo mkfs.vfat -n EFI /dev/${devpartname}1
     umount_device
