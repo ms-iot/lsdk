@@ -67,7 +67,7 @@ sudo apt install build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu u-b
 U-Boot is built outside the flexbuild environment. Our branch is forked from the `scalys-lsdk-1803` branch of `git://git.scalys.com/lsdk/u-boot`. Our branch is `https://github.com/ms-iot/SolidRun-u-boot.git` branch `ms-iot-grapeboard`.
 
 ```
-git clone https://github.com/ms-iot/SolidRun-u-boot.git -b ms-iot-grapeboard
+git clone --recurse-submodules https://github.com/ms-iot/SolidRun-u-boot.git -b ms-iot-grapeboard
 cd SolidRun-u-boot
 export ARCH=aarch64
 export CROSS_COMPILE=aarch64-linux-gnu-
@@ -95,7 +95,7 @@ Reset the board. When it reboots, you should see it execute your U-Boot.
 
 # Building PPA and OP-TEE
 
-NXP maintains an OP-TEE fork at `https://source.codeaurora.org/external/qoriq/qoriq-components/optee_os`, which is up to date with `https://github.com/OP-TEE/optee_os` as of tags/LSDK-18.09`. We build OP-TEE out of `https://github.com/ms-iot/optee_os.git` branch `ms-iot-security`. The flexbuild enviorment described bellow will clone this correct branch of OP-TEE for you.
+NXP maintains an OP-TEE fork at `https://source.codeaurora.org/external/qoriq/qoriq-components/optee_os`, which is up to date with `https://github.com/OP-TEE/optee_os` as of `tags/LSDK-18.09`. We build OP-TEE out of `https://github.com/ms-iot/optee_os.git` branch `ms-iot-security`. The flexbuild enviorment described bellow will clone this correct branch of OP-TEE for you.
 
 Everything but U-Boot is built in the "flexbuild" environment, an abomination developed by NXP. The LSKD repository is forked from flexbuild. The first step in running commands in flexbuild is to cd to the root of this repository and source the `setup.env` script.
 
@@ -160,8 +160,6 @@ Run the following command, where `/dev/sdx` is your SD card. All data on the car
 ```
 flex-installer -b build/images/bootpartition_arm64_<version>.tgz -r build/rfs/rootfs_ubuntu_bionic_arm64 -d /dev/sdx
 ```
-
-If you receive the error `mkfs.vfat: unable to open /dev/sdx1: No such file or directory`, but are able to view the directory in your terminal, add `sleep 5` to `tools/flex-installer` after `echo "Formatting partitions ..."` and before `sudo mkfs.vfat -n EFI /dev/${devpartname}1`
 
 Unmount and eject the SD card.
 
