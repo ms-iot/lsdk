@@ -64,11 +64,11 @@ sudo apt install build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu u-b
 
 # Building RCW, PBL, and U-Boot
 
-U-Boot is built outside the flexbuild environment. Our branch is forked from the `scalys-lsdk-1803` branch of `git://git.scalys.com/lsdk/u-boot`. Our branch is `https://github.com/ms-iot/SolidRun-u-boot.git` branch `ms-iot-grapeboard`.
+U-Boot is built outside the flexbuild environment. Our branch is forked from the `scalys-lsdk-1803` branch of `git://git.scalys.com/lsdk/u-boot`. Our branch is `https://github.com/ms-iot/u-boot.git` branch `ms-iot-grapeboard`.
 
 ```
-git clone --recurse-submodules https://github.com/ms-iot/SolidRun-u-boot.git -b ms-iot-grapeboard
-cd SolidRun-u-boot
+git clone --recurse-submodules https://github.com/ms-iot/u-boot.git -b ms-iot-grapeboard
+cd u-boot
 export ARCH=aarch64
 export CROSS_COMPILE=aarch64-linux-gnu-
 make grapeboard_pcie_qspi_spl_defconfig
