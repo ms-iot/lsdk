@@ -77,6 +77,8 @@ make
 
 It will produce a file named `u-boot-with-spl-pbl.bin`. This file must be written to NOR flash.
 
+**Note:** A prebuilt binary is available [here](https://grapeboardbinaries.blob.core.windows.net/grapeboard/u-boot-with-spl-pbl.bin).
+
 ## Updating U-Boot on NOR Flash
 
 Copy `u-boot-with-spl-pbl.bin` to the root of a FAT-formatted SD card.
@@ -112,6 +114,8 @@ flex-builder -c ppa-optee -m ls1012grapeboard
 ```
 
 It will produce the file `build/firmware/ppa/soc-ls1012/ppa.itb`. This file must be written to NOR flash.
+
+**Note:** A prebuilt binary is available [here](https://grapeboardbinaries.blob.core.windows.net/grapeboard/ppa.itb).
 
 ## Updating PPA and OP-TEE on NOR Flash
 
@@ -151,6 +155,11 @@ flex-builder -i merge-component -a arm64 -m ls1012grapeboard
 
 This will create a boot partition tarball (`build/images/bootpartition_arm64_<version>.tgz`) and rootfs (`build/rfs/rootfs_ubuntu_bionic_arm64`). We will use the `flex-installer` script to apply them to an SD card.
 
+**Note:** To reduce build time, you can download a
+[prebuilt boot partition tarball](https://grapeboardbinaries.blob.core.windows.net/grapeboard/bootpartition_arm64_lts_4.14.tgz)
+and a
+[prebuilt root filesystem tarball](https://grapeboardbinaries.blob.core.windows.net/grapeboard/rootfs_ubuntu_bionic_arm64_201811150958.tgz).
+
 ## Installing Linux to the SD card
 
 You will need a physical linux machine and an 8GB or larger SD card.
@@ -160,6 +169,8 @@ Run the following command, where `/dev/sdx` is your SD card. All data on the car
 ```
 flex-installer -b build/images/bootpartition_arm64_<version>.tgz -r build/rfs/rootfs_ubuntu_bionic_arm64 -d /dev/sdx
 ```
+
+**Note:** The `-r` parameter can take either a directory or a path to a tarball, so you can use the prebuilt tarball if you downloaded it.
 
 Unmount and eject the SD card.
 
