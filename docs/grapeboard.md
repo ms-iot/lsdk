@@ -97,7 +97,7 @@ Reset the board. When it reboots, you should see it execute your U-Boot.
 
 # Building PPA and OP-TEE
 
-OP-TEE is built from (https://github.com/ms-iot/optee_os)[https://github.com/ms-iot/optee_os] branch `ms-iot-security`. The "flexbuild" script orchestrates the build of all grapeboard components except U-Boot. Flexbuild is developed by NXP and forked into this repository. It will pull the correct version of OP-TEE when you build it.
+OP-TEE is built from [https://github.com/ms-iot/optee_os](https://github.com/ms-iot/optee_os) branch `ms-iot-security`. The "flexbuild" script orchestrates the build of all grapeboard components except U-Boot. Flexbuild is developed by NXP and forked into this repository. It will pull the correct version of OP-TEE when you build it.
 
 The first step in running commands in flexbuild is to cd to the root of this repository and source the `setup.env` script.
 
