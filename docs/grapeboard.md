@@ -97,9 +97,9 @@ Reset the board. When it reboots, you should see it execute your U-Boot.
 
 # Building PPA and OP-TEE
 
-NXP maintains an OP-TEE fork at `https://source.codeaurora.org/external/qoriq/qoriq-components/optee_os`, which is up to date with `https://github.com/OP-TEE/optee_os` as of `tags/LSDK-18.09`. We build OP-TEE out of `https://github.com/ms-iot/optee_os.git` branch `ms-iot-security`. The flexbuild enviorment described bellow will clone this correct branch of OP-TEE for you.
+OP-TEE is built from [https://github.com/ms-iot/optee_os](https://github.com/ms-iot/optee_os) branch `ms-iot-security`. The "flexbuild" script orchestrates the build of all grapeboard components except U-Boot. Flexbuild is developed by NXP and forked into this repository. It will pull the correct version of OP-TEE when you build it.
 
-Everything but U-Boot is built in the "flexbuild" environment developed by NXP. The LSDK repository is forked from flexbuild. The first step in running commands in flexbuild is to cd to the root of this repository and source the `setup.env` script.
+The first step in running commands in flexbuild is to cd to the root of this repository and source the `setup.env` script.
 
 ```
 git clone https://github.com/ms-iot/lsdk.git
@@ -141,7 +141,7 @@ loadables: 'trustedOS@1'
 
 # Building Linux
 
-Linux is the combination of NXP's layerscape fork (`https://source.codeaurora.org/external/qoriq/qoriq-components/linux` `tags/LSDK-18.09-V4.14`) and grapeboard patches. Grapeboard patches were taken from `git://git.scalys.com/lsdk/linux` branch `grapeboard-proto`. The grapeboard patches have been rebased on top of `tags/LSDK-18.09-V4.14`, and the result is stored at `https://github.com/ms-iot/linux.git` branch `ms-iot-grapeboard`.
+Run the following commands in your flexbuild window to build linux.
 
 ```
 flex-builder -c linux -a arm64 -m ls1012grapeboard
@@ -159,6 +159,8 @@ This will create a boot partition tarball (`build/images/bootpartition_arm64_<ve
 [prebuilt boot partition tarball](https://grapeboardbinaries.blob.core.windows.net/grapeboard/bootpartition_arm64_lts_4.14.tgz)
 and a
 [prebuilt root filesystem tarball](https://grapeboardbinaries.blob.core.windows.net/grapeboard/rootfs_ubuntu_bionic_arm64_201811150958.tgz).
+
+Linux is the combination of NXP's layerscape fork ([https://source.codeaurora.org/external/qoriq/qoriq-components/linux](https://source.codeaurora.org/external/qoriq/qoriq-components/linux) `tags/LSDK-18.09-V4.14`) and grapeboard patches. Grapeboard patches were taken from `git://git.scalys.com/lsdk/linux` branch `grapeboard-proto`. The grapeboard patches have been rebased on top of `tags/LSDK-18.09-V4.14`, and the result is stored at [https://github.com/ms-iot/linux branch](https://github.com/ms-iot/linux) branch `ms-iot-grapeboard`.
 
 ## Installing Linux to the SD card
 
@@ -189,7 +191,7 @@ Password: root
 
 ### Enabling network and SSH
 
-Networking is not configured by default. Until we figure out how to provision the image with networking, use the following commands to enable networking. This only needs to be done once.
+Networking is not configured by default. Use the following commands to enable networking. This only needs to be done once.
 
 ```
 echo "auto eth0" >> /etc/network/interfaces
