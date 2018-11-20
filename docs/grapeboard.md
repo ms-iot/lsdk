@@ -160,7 +160,7 @@ This will create a boot partition tarball (`build/images/bootpartition_arm64_<ve
 and a
 [prebuilt root filesystem tarball](https://grapeboardbinaries.blob.core.windows.net/grapeboard/rootfs_ubuntu_bionic_arm64_201811150958.tgz).
 
-Linux is the combination of NXP's layerscape fork ([https://source.codeaurora.org/external/qoriq/qoriq-components/linux](https://source.codeaurora.org/external/qoriq/qoriq-components/linux) `tags/LSDK-18.09-V4.14`) and grapeboard patches. Grapeboard patches were taken from [git://git.scalys.com/lsdk/linux](git://git.scalys.com/lsdk/linux) branch `grapeboard-proto`. The grapeboard patches have been rebased on top of `tags/LSDK-18.09-V4.14`, and the result is stored at [https://github.com/ms-iot/linux branch](https://github.com/ms-iot/linux) branch `ms-iot-grapeboard`.
+Linux is the combination of NXP's layerscape fork ([https://source.codeaurora.org/external/qoriq/qoriq-components/linux](https://source.codeaurora.org/external/qoriq/qoriq-components/linux) `tags/LSDK-18.09-V4.14`) and grapeboard patches. Grapeboard patches were taken from `git://git.scalys.com/lsdk/linux` branch `grapeboard-proto`. The grapeboard patches have been rebased on top of `tags/LSDK-18.09-V4.14`, and the result is stored at [https://github.com/ms-iot/linux branch](https://github.com/ms-iot/linux) branch `ms-iot-grapeboard`.
 
 ## Installing Linux to the SD card
 
