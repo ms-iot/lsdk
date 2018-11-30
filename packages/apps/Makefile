@@ -574,8 +574,8 @@ ifeq ($(CONFIG_BUILD_OPTEE), y)
 ifeq ($(CONFIG_BUILD_OPTEE_TA_FTPM), y)
 ifeq ($(DESTARCH),arm64)
 	@$(call fbprint_b,"optee_ta_ftpm")
-	@$(call fetch-git-tree,ftpm)
-	cd ftpm/Samples/ARM32-FirmwareTPM/optee_ta && git submodule init && git submodule update && \
+	@$(call fetch-git-tree,optee_ta_ftpm)
+	cd optee_ta_ftpm/Samples/ARM32-FirmwareTPM/optee_ta && git submodule init && git submodule update && \
 	TA_CPU=cortex-a53 TA_CROSS_COMPILE=$(CROSS_COMPILE) TA_DEV_KIT_DIR=$(FBDIR)/packages/apps/optee_os/out/arm-plat-ls/export-ta_arm64/ $(MAKE) && \
 	mkdir -p $(DESTDIR)/lib/optee_armtz && \
 	cp out/fTPM/bc50d971-d4c9-42c4-82cb-343fb7f37896.ta $(DESTDIR)/lib/optee_armtz/ && \
