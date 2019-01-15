@@ -29,7 +29,7 @@ $(O)/hdr_spl.out: u-boot cst \
 	cp keys/srk.pri $(O)/hab
 	cp hab/input_spl_secure $(O)/hab
 	cp $(UBOOT_BUILD_PATH)/spl/u-boot-spl.bin $(O)/hab
-	cd $(O)/hab && ../cst/create_hdr_isbc input_spl_secure
+	cd $(O)/hab && ../../cst/create_hdr_isbc input_spl_secure
 	mv $(O)/hab/hdr_spl.out $@
 
 .PHONY: cst
