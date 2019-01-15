@@ -4,11 +4,12 @@
 
 O ?= $(CURDIR)/build
 
-CST_SRC_PATH ?= cst
-UBOOT_SRC_PATH ?= u-boot
-UBOOT_BUILD_PATH ?= $(O)/u-boot
+CST_SRC_PATH = cst
+UBOOT_SRC_PATH = u-boot
+UBOOT_BUILD_PATH = $(O)/u-boot
+OPTEE_BUILD_PATH = $(O)/optee
 
-all: u-boot $(O)/hdr_spl.out
+all: u-boot $(O)/hdr_spl.out ppa-optee
 
 .PHONY: u-boot
 u-boot:
@@ -35,4 +36,39 @@ $(O)/hdr_spl.out: u-boot cst \
 .PHONY: cst
 cst:
 	$(MAKE) -C $(CST_SRC_PATH)
+
+.PHONY: ppa-optee
+ppa-optee: $(O)/ppa.itb
+$(O)/ppa.itb: $(O)/ppa.its $(O)/tee.bin $(O)/monitor.bin
+	cd $(O) && mkimage -f ppa.its ppa.itb
+
+$(O)/ppa.its: ppa.its
+	cp $< $@
+
+$(O)/tee.bin: optee
+	cp $(OPTEE_BUILD_PATH)/core/tee-pager.bin $@
+
+.PHONY: optee
+optee:
+	CROSS_COMPILE64=aarch64-linux-gnu- \
+	$(MAKE) -C optee_os O=$(OPTEE_BUILD_PATH) \
+	PLATFORM=ls-ls1012grapeboard \
+	CFG_ARM64_core=y \
+	ARCH=arm \
+	CFG_TEE_CORE_DEBUG=y \
+	CFG_TEE_CORE_LOG_LEVEL=3
+
+$(O)/monitor.bin: ppa
+	cp ppa-generic/ppa/soc-ls1012/build/obj/monitor.bin $@
+
+.PHONY: ppa
+ppa:
+	cd ppa-generic/ppa && CROSS_COMPILE=aarch64-linux-gnu- \
+	./build clean ls1012
+	cd ppa-generic/ppa && CROSS_COMPILE=aarch64-linux-gnu- \
+	./build prod rdb ls1012
+
+.PHONY: clean
+clean:
+	rm -rf build
 
