@@ -2,3 +2,7 @@
 	path = u-boot
 	url = https://github.com/ms-iot/u-boot.git
 	branch = ms-iot-grapeboard
+[submodule "cst"]
+	path = cst
+	url = https://source.codeaurora.org/external/qoriq/qoriq-components/cst
+	branch = github.qoriq-os/integration

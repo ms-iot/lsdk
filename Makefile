@@ -2,14 +2,13 @@
 # with LS1012A. Builds firmware components, linux kernel, and
 # linux rootfs.
 
-ROOT ?= ..
-BUILD_PATH ?= $(ROOT)/build
+O ?= $(CURDIR)/build
 
-CST_SRC_PATH ?= $(ROOT)/cst
-UBOOT_SRC_PATH ?= $(ROOT)/u-boot
-UBOOT_BUILD_PATH ?= $(BUILD_PATH)/u-boot
+CST_SRC_PATH ?= cst
+UBOOT_SRC_PATH ?= u-boot
+UBOOT_BUILD_PATH ?= $(O)/u-boot
 
-all: u-boot $(BUILD_PATH)/hdr_spl.out
+all: u-boot $(O)/hdr_spl.out
 
 .PHONY: u-boot
 u-boot:
@@ -20,18 +19,18 @@ u-boot:
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=aarch64 \
 	$(MAKE) -C $(UBOOT_SRC_PATH) O=$(UBOOT_BUILD_PATH)
 
-$(BUILD_PATH)/hdr_spl.out: u-boot cst \
-			   tools/secureboot/srk.pub \
-			   tools/secureboot/srk.pri \
-			   input_spl_secure
-	rm -rf $(BUILD_PATH)/cst
-	mkdir $(BUILD_PATH)/cst
-	cp tools/secureboot/srk.pub $(BUILD_PATH)/cst
-	cp tools/secureboot/srk.pri $(BUILD_PATH)/cst
-	cp tools/secureboot/input_spl_secure $(BUILD_PATH)/cst
-	cp $(UBOOT_BUILD_PATH)/spl/u-boot-spl.bin $(BUILD_PATH)/cst
-	cd $(BUILD_PATH)/cst && ../../cst/create_hdr_isbc input_spl_secure
-	mv $(BUILD_PATH)/cst/hdr_spl.out $@
+$(O)/hdr_spl.out: u-boot cst \
+		  keys/srk.pub \
+		  keys/srk.pri \
+		  hab/input_spl_secure
+	rm -rf $(O)/hab
+	mkdir $(O)/hab
+	cp keys/srk.pub $(O)/hab
+	cp keys/srk.pri $(O)/hab
+	cp hab/input_spl_secure $(O)/hab
+	cp $(UBOOT_BUILD_PATH)/spl/u-boot-spl.bin $(O)/hab
+	cd $(O)/hab && ../cst/create_hdr_isbc input_spl_secure
+	mv $(O)/hab/hdr_spl.out $@
 
 .PHONY: cst
 cst:
