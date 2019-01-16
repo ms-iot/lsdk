@@ -9,7 +9,10 @@ UBOOT_SRC_PATH = u-boot
 UBOOT_BUILD_PATH = $(O)/u-boot
 OPTEE_BUILD_PATH = $(O)/optee
 
-all: u-boot $(O)/hdr_spl.out ppa-optee
+all: u-boot-signed ppa-optee
+
+.PHONY: u-boot-signed
+u-boot-signed: u-boot $(O)/hdr_spl.out
 
 .PHONY: u-boot
 u-boot:
