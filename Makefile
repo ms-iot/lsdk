@@ -19,6 +19,7 @@ u-boot:
 
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=aarch64 \
 	$(MAKE) -C $(UBOOT_SRC_PATH) O=$(UBOOT_BUILD_PATH)
+	cp $(UBOOT_BUILD_PATH)/u-boot-with-spl-pbl.bin $(O)/
 
 $(O)/hdr_spl.out: u-boot cst \
 		  keys/srk.pub \
