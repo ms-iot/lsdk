@@ -8,8 +8,13 @@ CST_SRC_PATH = cst
 UBOOT_SRC_PATH = u-boot
 UBOOT_BUILD_PATH = $(O)/u-boot
 OPTEE_BUILD_PATH = $(O)/optee
+LINUX_BUILD_PATH= $(O)/linux
 
-all: u-boot-signed ppa-optee
+all: firmware os
+
+.PHONY: firmware os
+firmware: u-boot-signed ppa-optee
+os: linux
 
 .PHONY: u-boot-signed
 u-boot-signed: u-boot $(O)/hdr_spl.out
@@ -60,7 +65,7 @@ optee:
 	CFG_ARM64_core=y \
 	ARCH=arm \
 	CFG_TEE_CORE_DEBUG=y \
-	CFG_TEE_CORE_LOG_LEVEL=3
+	CFG_TEE_CORE_LOG_LEVEL=4
 
 $(O)/monitor.bin: ppa
 	cp ppa-generic/ppa/soc-ls1012/build/obj/monitor.bin $@
@@ -70,9 +75,43 @@ ppa:
 	cd ppa-generic/ppa && CROSS_COMPILE=aarch64-linux-gnu- \
 	./build clean ls1012
 	cd ppa-generic/ppa && CROSS_COMPILE=aarch64-linux-gnu- \
-	./build prod rdb ls1012
+	./build prod rdb spd=on ls1012
+
+.PHONY: linux
+linux: configure-linux compile-linux
+
+.PHONY: configure-linux
+configure-linux:
+	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
+	$(MAKE) -C linux defconfig lsdk.config grapeboard_security.config \
+	O=$(LINUX_BUILD_PATH)
+
+.PHONY: compile-linux
+compile-linux:
+	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
+	$(MAKE) -C linux O=$(LINUX_BUILD_PATH)
+	
+	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
+	$(MAKE) -C linux modules O=$(LINUX_BUILD_PATH)
+
+	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
+	$(MAKE) -C linux modules_install \
+	INSTALL_MOD_PATH=$(O)/install O=$(LINUX_BUILD_PATH)
+
+	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
+	$(MAKE) -C linux zinstall INSTALL_PATH=$(O)/install \
+	O=$(LINUX_BUILD_PATH)
+
+	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
+	$(MAKE) -C linux "freescale/grapeboard.dtb" O=$(LINUX_BUILD_PATH)
+
+	cp $(LINUX_BUILD_PATH)/arch/arm64/boot/Image* $(O)/install
+	cp $(LINUX_BUILD_PATH)/arch/arm64/boot/dts/freescale/grapeboard.dtb \
+	$(O)/install
+
+.PHONY: ramdisk_rootfs
+ramdisk_rootfs: $(O)/ramdisk_rootfs_arm64.ext4.gz
 
 .PHONY: clean
 clean:
 	rm -rf build
-

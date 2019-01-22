@@ -14,3 +14,7 @@
 	path = optee_os
 	url = https://github.com/ms-iot/optee_os.git
 	branch = ms-iot-security
+[submodule "linux"]
+	path = linux
+	url = https://github.com/ms-iot/linux.git
+	branch = ms-iot-grapeboard
