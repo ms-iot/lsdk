@@ -18,3 +18,7 @@
 	path = linux
 	url = https://github.com/ms-iot/linux.git
 	branch = ms-iot-grapeboard
+[submodule "qoriq-engine-pfe-bin"]
+	path = qoriq-engine-pfe-bin
+	url = https://github.com/nxp/qoriq-engine-pfe-bin.git
+	branch = integration
