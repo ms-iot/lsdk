@@ -112,6 +112,47 @@ compile-linux:
 .PHONY: ramdisk_rootfs
 ramdisk_rootfs: $(O)/ramdisk_rootfs_arm64.ext4.gz
 
+# stuff PFE binaries and kernel modules into rootfs, and zip it up
+$(O)/ramdisk_rootfs_arm64.ext4.gz: \
+	$(O)/download/ramdisk_rootfs_arm64.ext4.gz \
+	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_class_ls1012a.elf \
+	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_tmu_ls1012a.elf \
+
+	# extract the ramdisk from the source file
+	-sudo umount $(O)/mntrd
+	-rm -f $(O)/ramdisk_rootfs_arm64.ext4
+	gunzip --force --keep $(O)/download/ramdisk_rootfs_arm64.ext4.gz
+	mv $(O)/download/ramdisk_rootfs_arm64.ext4 $(O)/
+
+	# mount the ramdisk
+	rm -rf $(O)/mntrd
+	mkdir $(O)/mntrd
+	sudo mount $(O)/ramdisk_rootfs_arm64.ext4 $(O)/mntrd
+
+	# copy in the PFE firmware files
+	sudo mkdir -p $(O)/mntrd/lib/firmware
+	sudo cp qoriq-engine-pfe-bin/ls1012a/slow_path/* \
+		$(O)/mntrd/lib/firmware
+
+	# copy in the pfe kernel module
+	kernelrelease=$$(cat $(LINUX_BUILD_PATH)/include/config/kernel.release) && \
+	dir=lib/modules/$$kernelrelease/kernel/drivers/staging/fsl_ppfe && \
+	sudo mkdir -p $(O)/mntrd/$$dir && \
+	sudo cp $(O)/install/$$dir/pfe.ko $(O)/mntrd/$$dir
+
+	# unmount the ramdisk and zip it up
+	sudo umount $(O)/mntrd
+	gzip $(O)/ramdisk_rootfs_arm64.ext4
+
+# download ramdisk_rootfs_arm64.ext4.gz from NXP
+$(O)/download/ramdisk_rootfs_arm64.ext4.gz:
+	# only download if it doesn't already exist. To force it to be
+	# re-downloaded, delete $(O)/download
+	if [ ! -f $@ ]; then \
+	    wget -c -P $(O)/download \
+	    http://www.nxp.com/lgfiles/sdk/lsdk/ramdisk_rootfs_arm64.ext4.gz; \
+	fi
+
 .PHONY: clean
 clean:
 	rm -rf build
