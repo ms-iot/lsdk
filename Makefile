@@ -109,6 +109,32 @@ compile-linux:
 	cp $(LINUX_BUILD_PATH)/arch/arm64/boot/dts/freescale/grapeboard.dtb \
 	$(O)/install
 
+# Usage: sudo make update-linux-sdcard DEV=/dev/sdX
+# Update linux on an SD card. You built a new version of the kernel
+# using the compile-linux target, and you want to update the kernel
+# on your SD card. Insert the SD card into the PC, determine the device
+# (e.g. /dev/sdd), and run this target.
+.PHONY: update-linux-sdcard
+update-linux-sdcard:
+	-mkdir -p /media/$(USER)/sdx2
+	-mkdir -p /media/$(USER)/sdx3
+	mount $(DEV)2 /media/$(USER)/sdx2
+	mount $(DEV)3 /media/$(USER)/sdx3
+
+	# copy new kernel image
+	mv /media/$(USER)/sdx2/Image /media/$(USER)/sdx2/Image.old
+	cp $(O)/install/Image /media/$(USER)/sdx2
+
+	# copy new modules
+	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
+        $(MAKE) -C linux modules_install \
+        INSTALL_MOD_PATH=/media/$(USER)/sdx3 O=$(LINUX_BUILD_PATH)
+
+	umount /media/$(USER)/sdx2
+	umount /media/$(USER)/sdx3
+	udisksctl power-off -b $(DEV)
+
+# XXX this is not necessary
 .PHONY: ramdisk_rootfs
 ramdisk_rootfs: $(O)/ramdisk_rootfs_arm64.ext4.gz
 
