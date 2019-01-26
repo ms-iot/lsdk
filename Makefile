@@ -13,10 +13,10 @@ UBUNTU_BASE_URL = http://cdimage.ubuntu.com/ubuntu-base/releases/bionic/release/
 UBUNTU_BASE_FILENAME = $(notdir $(UBUNTU_BASE_URL))
 RFS_DIR = $(O)/rfs
 
-all: firmware os
+all: firmware linux rfs
 
 .PHONY: firmware os
-firmware: u-boot-signed ppa-optee
+firmware: u-boot-signed ppa-optee bootscript
 os: linux
 
 .PHONY: u-boot-signed
@@ -48,6 +48,11 @@ $(O)/hdr_spl.out: u-boot cst \
 .PHONY: cst
 cst:
 	$(MAKE) -C $(CST_SRC_PATH)
+
+.PHONY: bootscript
+bootscript: $(O)/grapeboard_boot.scr
+$(O)/grapeboard_boot.scr: grapeboard_boot.txt
+	$(UBOOT_BUILD_PATH)/tools/mkimage -A arm64 -T script -C none -d $< $@
 
 .PHONY: ppa-optee
 ppa-optee: $(O)/ppa.itb
@@ -93,7 +98,7 @@ configure-linux:
 compile-linux:
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
 	$(MAKE) -C linux O=$(LINUX_BUILD_PATH)
-	
+
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
 	$(MAKE) -C linux modules O=$(LINUX_BUILD_PATH)
 
@@ -137,51 +142,6 @@ update-linux-sdcard:
 	umount /media/$(USER)/sdx3
 	udisksctl power-off -b $(DEV)
 
-# XXX this is not necessary
-.PHONY: ramdisk_rootfs
-ramdisk_rootfs: $(O)/ramdisk_rootfs_arm64.ext4.gz
-
-# stuff PFE binaries and kernel modules into rootfs, and zip it up
-$(O)/ramdisk_rootfs_arm64.ext4.gz: \
-	$(O)/download/ramdisk_rootfs_arm64.ext4.gz \
-	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_class_ls1012a.elf \
-	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_tmu_ls1012a.elf \
-
-	# extract the ramdisk from the source file
-	-sudo umount $(O)/mntrd
-	-rm -f $(O)/ramdisk_rootfs_arm64.ext4
-	gunzip --force --keep $(O)/download/ramdisk_rootfs_arm64.ext4.gz
-	mv $(O)/download/ramdisk_rootfs_arm64.ext4 $(O)/
-
-	# mount the ramdisk
-	rm -rf $(O)/mntrd
-	mkdir $(O)/mntrd
-	sudo mount $(O)/ramdisk_rootfs_arm64.ext4 $(O)/mntrd
-
-	# copy in the PFE firmware files
-	sudo mkdir -p $(O)/mntrd/lib/firmware
-	sudo cp qoriq-engine-pfe-bin/ls1012a/slow_path/* \
-		$(O)/mntrd/lib/firmware
-
-	# copy in the pfe kernel module
-	kernelrelease=$$(cat $(LINUX_BUILD_PATH)/include/config/kernel.release) && \
-	dir=lib/modules/$$kernelrelease/kernel/drivers/staging/fsl_ppfe && \
-	sudo mkdir -p $(O)/mntrd/$$dir && \
-	sudo cp $(O)/install/$$dir/pfe.ko $(O)/mntrd/$$dir
-
-	# unmount the ramdisk and zip it up
-	sudo umount $(O)/mntrd
-	gzip $(O)/ramdisk_rootfs_arm64.ext4
-
-# download ramdisk_rootfs_arm64.ext4.gz from NXP
-$(O)/download/ramdisk_rootfs_arm64.ext4.gz:
-	# only download if it doesn't already exist. To force it to be
-	# re-downloaded, delete $(O)/download
-	if [ ! -f $@ ]; then \
-	    wget -c -P $(O)/download \
-	    http://www.nxp.com/lgfiles/sdk/lsdk/ramdisk_rootfs_arm64.ext4.gz; \
-	fi
-
 # rootfs is the combination of
 #   Base Image:
 #       Ubuntu Base
@@ -197,7 +157,7 @@ $(O)/download/ramdisk_rootfs_arm64.ext4.gz:
 #       FTPM
 .PHONY: rfs
 rfs: $(O)/rootfs.tar.gz
-$(O)/rootfs.tar.gz: rfs-base rfs-additions
+$(O)/rootfs.tar.gz: rfs-additions
 	# pack up rootfs into tar.gz
 	cd $(RFS_DIR) && sudo tar -cf $@ .
 	sudo chown $(USER):$(USER) $@
@@ -214,39 +174,39 @@ $(RFS_DIR)/usr/bin/ssh:
 	sudo rm -rf $(RFS_DIR)
 	mkdir -p $(RFS_DIR)
 
-	# unpack ubuntu base to rfs dir
+	@echo "Unpacking Ubuntu base to rootfs directory"
 	sudo tar -C $(RFS_DIR) -xf $(O)/download/$(UBUNTU_BASE_FILENAME)
 
-	# prepare for chroot
+	@echo "Preparing rootfs for chroot"
 	sudo cp /etc/resolv.conf $(RFS_DIR)/etc/resolv.conf
 	sudo cp /usr/bin/qemu-aarch64-static $(RFS_DIR)/usr/bin/
 	sudo cp /usr/bin/qemu-arm-static $(RFS_DIR)/usr/bin/
 
-	# setup users
+	@echo "Setting up user accounts"
 	sudo chroot $(RFS_DIR) useradd -m -d /home/user -s /bin/bash user
 	sudo chroot $(RFS_DIR) gpasswd -a user sudo
 	echo "echo -e 'root\nroot\n' | passwd root" | sudo chroot $(RFS_DIR)
 	echo "echo -e 'user\nuser\n' | passwd user" | sudo chroot $(RFS_DIR)
 
-	# install packages
+	@echo "Installing packages"
 	sudo chroot $(RFS_DIR) apt-get --assume-yes install \
 		sudo ssh vim udev kmod ifupdown net-tools
 
-	# configure network
+	@echo "Configuring network"
 	sudo echo "auto eth0" >> $(RFS_DIR)/etc/network/interfaces
 	sudo echo "iface eth0 inet dhcp" >> $(RFS_DIR)/etc/network/interfaces
 
 .PHONY: rfs-additions
-rfs-additions: \
+rfs-additions: rfs-base \
 	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_class_ls1012a.elf \
 	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_tmu_ls1012a.elf \
 
-	# install kernel modules
+	@echo "Installing kernel modules to rootfs"
 	sudo CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
 	$(MAKE) -C linux modules_install \
 	INSTALL_MOD_PATH=$(RFS_DIR) O=$(LINUX_BUILD_PATH)
 
-	# copy PFE firmware
+	@echo "Copying PFE firmware to rootfs"
 	sudo mkdir -p $(RFS_DIR)/lib/firmware
 	sudo cp qoriq-engine-pfe-bin/ls1012a/slow_path/* \
 		$(RFS_DIR)/lib/firmware
@@ -254,6 +214,7 @@ rfs-additions: \
 .PHONY: rfs-prereqs
 rfs-prereqs: /usr/bin/qemu-aarch64-static
 /usr/bin/qemu-aarch64-static:
+	@echo "Installing rootfs build tools"
 	sudo apt-get --assume-yes \
 		binfmt-support qemu-system-common qemu-user-static
 	update-binfmts --enable qemu-aarch64
@@ -262,10 +223,65 @@ rfs-prereqs: /usr/bin/qemu-aarch64-static
 $(O)/download/$(UBUNTU_BASE_FILENAME):
 	# only download if it doesn't already exist. To force it to be
 	# re-downloaded, delete $(O)/download
-	if [ ! -f $@ ]; then \
+	@if [ ! -f $@ ]; then \
+	    echo "Downloading Ubuntu Base RootFS"; \
 	    wget -c -P $(O)/download $(UBUNTU_BASE_URL); \
 	fi
 
+# Usage: make sdcard DEV=/dev/sdX
+#
+# Prepare a bootable SD card. You must have already built
+# firmware, kernel, and rootfs
+.PHONY: sdcard
+sdcard:
+	@if [ -z '$(DEV)' ]; then \
+	    echo "DEV not specified. Usage: make sdcard DEV=/dev/sdx"; \
+	    false; \
+	fi
+
+	@echo "Formatting SD card"
+	sudo parted -s $(DEV) mklabel gpt
+	# 1000MB boot partition for kernel and devicetree
+	sudo parted -s $(DEV) mkpart primary ext4 1MiB 100MiB
+	sudo parted -s $(DEV) set 1 boot on
+	# Rest of disk for rootfs
+	sudo parted -s $(DEV) mkpart primary ext4 100MiB 100%
+
+	sleep 1
+	sudo mkfs -t ext4 -L boot $(DEV)1
+	sudo mkfs -t ext4 -L rootfs $(DEV)2
+
+	-sudo mkdir -p /media/$(USER)/sdx1
+	sudo mount $(DEV)1 /media/$(USER)/sdx1
+
+	@echo "Setting up boot partition"
+	-sudo mv /media/$(USER)/sdx1/Image /media/$(USER)/sdx1/Image.old
+	sudo cp $(O)/install/Image /media/$(USER)/sdx1
+	sudo cp $(O)/install/grapeboard.dtb /media/$(USER)/sdx1
+	sudo cp $(O)/grapeboard_boot.scr /media/$(USER)/sdx1
+	@echo "Flushing and unmounting boot partition ..."
+	sudo umount /media/$(USER)/sdx1
+
+	# copy rootfs
+	@echo "Setting up rootfs"
+	-sudo mkdir -p /media/$(USER)/sdx2
+	sudo mount $(DEV)2 /media/$(USER)/sdx2
+	sudo tar -C /media/$(USER)/sdx2 -xf $(O)/rootfs.tar.gz
+	@echo "Flushing and unmounting rootfs ..."
+	sudo umount /media/$(USER)/sdx2
+
+	sudo udisksctl power-off -b $(DEV)
+	@echo "SD Card successfully created. It is safe to remove."
+
+# Usage: make eject DEV=/dev/sdd
+# Eject and power off an SD card
+.PHONY: eject
+eject:
+	-sudo udisksctl unmount -b $(DEV)
+	-sudo udisksctl unmount -b $(DEV)
+	-sudo udisksctl unmount -b $(DEV)
+	-sudo udisksctl power-off -b $(DEV)
+	@echo "SD card successfully ejected. It is safe to remove."
 
 .PHONY: clean
 clean:
