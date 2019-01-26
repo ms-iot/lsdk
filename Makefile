@@ -8,7 +8,10 @@ CST_SRC_PATH = cst
 UBOOT_SRC_PATH = u-boot
 UBOOT_BUILD_PATH = $(O)/u-boot
 OPTEE_BUILD_PATH = $(O)/optee
-LINUX_BUILD_PATH= $(O)/linux
+LINUX_BUILD_PATH = $(O)/linux
+UBUNTU_BASE_URL = http://cdimage.ubuntu.com/ubuntu-base/releases/bionic/release/ubuntu-base-18.04-base-arm64.tar.gz
+UBUNTU_BASE_FILENAME = $(notdir $(UBUNTU_BASE_URL))
+RFS_DIR = $(O)/rfs
 
 all: firmware os
 
@@ -178,6 +181,91 @@ $(O)/download/ramdisk_rootfs_arm64.ext4.gz:
 	    wget -c -P $(O)/download \
 	    http://www.nxp.com/lgfiles/sdk/lsdk/ramdisk_rootfs_arm64.ext4.gz; \
 	fi
+
+# rootfs is the combination of
+#   Base Image:
+#       Ubuntu Base
+#       Essential packages (udev, ssh, vim, ifupdown ...)
+#       Network configuration
+#       Users
+#
+#   Our additions:
+#       Kernel modules
+#       PFE firmware
+#       OPTEE client lib
+#       OPTEE test
+#       FTPM
+.PHONY: rfs
+rfs: $(O)/rootfs.tar.gz
+$(O)/rootfs.tar.gz: rfs-base rfs-additions
+	# pack up rootfs into tar.gz
+	cd $(RFS_DIR) && sudo tar -cf $@ .
+	sudo chown $(USER):$(USER) $@
+
+# We use /usr/bin/ssh as a proxy for whether the base image has been built.
+# This typically only needs to done once.
+# You can force rebuild of base image by deleting $(RFS_DIR)
+.PHONY: rfs-base
+rfs-base: $(RFS_DIR)/usr/bin/ssh
+$(RFS_DIR)/usr/bin/ssh:
+	rfs-prereqs \
+	$(O)/download/$(UBUNTU_BASE_FILENAME) \
+
+	sudo rm -rf $(RFS_DIR)
+	mkdir -p $(RFS_DIR)
+
+	# unpack ubuntu base to rfs dir
+	sudo tar -C $(RFS_DIR) -xf $(O)/download/$(UBUNTU_BASE_FILENAME)
+
+	# prepare for chroot
+	sudo cp /etc/resolv.conf $(RFS_DIR)/etc/resolv.conf
+	sudo cp /usr/bin/qemu-aarch64-static $(RFS_DIR)/usr/bin/
+	sudo cp /usr/bin/qemu-arm-static $(RFS_DIR)/usr/bin/
+
+	# setup users
+	sudo chroot $(RFS_DIR) useradd -m -d /home/user -s /bin/bash user
+	sudo chroot $(RFS_DIR) gpasswd -a user sudo
+	echo "echo -e 'root\nroot\n' | passwd root" | sudo chroot $(RFS_DIR)
+	echo "echo -e 'user\nuser\n' | passwd user" | sudo chroot $(RFS_DIR)
+
+	# install packages
+	sudo chroot $(RFS_DIR) apt-get --assume-yes install \
+		sudo ssh vim udev kmod ifupdown net-tools
+
+	# configure network
+	sudo echo "auto eth0" >> $(RFS_DIR)/etc/network/interfaces
+	sudo echo "iface eth0 inet dhcp" >> $(RFS_DIR)/etc/network/interfaces
+
+.PHONY: rfs-additions
+rfs-additions: \
+	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_class_ls1012a.elf \
+	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_tmu_ls1012a.elf \
+
+	# install kernel modules
+	sudo CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
+	$(MAKE) -C linux modules_install \
+	INSTALL_MOD_PATH=$(RFS_DIR) O=$(LINUX_BUILD_PATH)
+
+	# copy PFE firmware
+	sudo mkdir -p $(RFS_DIR)/lib/firmware
+	sudo cp qoriq-engine-pfe-bin/ls1012a/slow_path/* \
+		$(RFS_DIR)/lib/firmware
+
+.PHONY: rfs-prereqs
+rfs-prereqs: /usr/bin/qemu-aarch64-static
+/usr/bin/qemu-aarch64-static:
+	sudo apt-get --assume-yes \
+		binfmt-support qemu-system-common qemu-user-static
+	update-binfmts --enable qemu-aarch64
+
+# download Ubuntu Base RootFS archive from Ubuntu
+$(O)/download/$(UBUNTU_BASE_FILENAME):
+	# only download if it doesn't already exist. To force it to be
+	# re-downloaded, delete $(O)/download
+	if [ ! -f $@ ]; then \
+	    wget -c -P $(O)/download $(UBUNTU_BASE_URL); \
+	fi
+
 
 .PHONY: clean
 clean:
