@@ -73,7 +73,7 @@ optee:
 	CFG_ARM64_core=y \
 	ARCH=arm \
 	CFG_TEE_CORE_DEBUG=y \
-	CFG_TEE_CORE_LOG_LEVEL=4
+	CFG_TEE_CORE_LOG_LEVEL=2
 
 $(O)/monitor.bin: ppa
 	cp ppa-generic/ppa/soc-ls1012/build/obj/monitor.bin $@
@@ -199,6 +199,7 @@ $(RFS_DIR)/usr/bin/ssh:
 .PHONY: rfs-additions
 rfs-additions: rfs-base \
 	optee_client \
+	optee_test \
 	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_class_ls1012a.elf \
 	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_tmu_ls1012a.elf \
 
@@ -215,6 +216,14 @@ rfs-additions: rfs-base \
 	@echo "Installing OPTEE client"
 	sudo $(MAKE) -C optee_client install DESTDIR=$(RFS_DIR)/usr \
 		CROSS_COMPILE=aarch64-linux-gnu- O=$(O)/optee_client
+
+	@echo "Installing OPTEE test suite"
+	sudo $(MAKE) -C optee_test install \
+	DESTDIR=$(RFS_DIR) \
+	CROSS_COMPILE=aarch64-linux-gnu- \
+	TA_DEV_KIT_DIR=$(O)/optee/export-ta_arm64 \
+	OPTEE_CLIENT_EXPORT=$(O)/optee_client/export \
+	O=$(O)/optee_test
 
 .PHONY: rfs-prereqs
 rfs-prereqs: /usr/bin/qemu-aarch64-static
@@ -253,8 +262,8 @@ sdcard:
 	sudo parted -s $(DEV) mkpart primary ext4 100MiB 100%
 
 	sleep 1
-	sudo mkfs -t ext4 -L boot $(DEV)1
-	sudo mkfs -t ext4 -L rootfs $(DEV)2
+	sudo mkfs.ext4 -F -L boot $(DEV)1
+	sudo mkfs.ext4 -F -L rootfs $(DEV)2
 
 	-sudo mkdir -p /media/$(USER)/sdx1
 	sudo mount $(DEV)1 /media/$(USER)/sdx1
@@ -292,6 +301,14 @@ eject:
 optee_client:
 	$(MAKE) -C optee_client \
 		CROSS_COMPILE=aarch64-linux-gnu- O=$(O)/optee_client
+
+.PHONY: optee_test
+optee_test: optee_client optee
+	$(MAKE) -C optee_test \
+	CROSS_COMPILE=aarch64-linux-gnu- \
+	TA_DEV_KIT_DIR=$(O)/optee/export-ta_arm64 \
+	OPTEE_CLIENT_EXPORT=$(O)/optee_client/export \
+	O=$(O)/optee_test
 
 .PHONY: clean
 clean:
