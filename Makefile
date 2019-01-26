@@ -198,6 +198,7 @@ $(RFS_DIR)/usr/bin/ssh:
 
 .PHONY: rfs-additions
 rfs-additions: rfs-base \
+	optee_client \
 	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_class_ls1012a.elf \
 	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_tmu_ls1012a.elf \
 
@@ -210,6 +211,10 @@ rfs-additions: rfs-base \
 	sudo mkdir -p $(RFS_DIR)/lib/firmware
 	sudo cp qoriq-engine-pfe-bin/ls1012a/slow_path/* \
 		$(RFS_DIR)/lib/firmware
+
+	@echo "Installing OPTEE client"
+	sudo $(MAKE) -C optee_client install DESTDIR=$(RFS_DIR)/usr \
+		CROSS_COMPILE=aarch64-linux-gnu- O=$(O)/optee_client
 
 .PHONY: rfs-prereqs
 rfs-prereqs: /usr/bin/qemu-aarch64-static
@@ -282,6 +287,11 @@ eject:
 	-sudo udisksctl unmount -b $(DEV)
 	-sudo udisksctl power-off -b $(DEV)
 	@echo "SD card successfully ejected. It is safe to remove."
+
+.PHONY: optee_client
+optee_client:
+	$(MAKE) -C optee_client \
+		CROSS_COMPILE=aarch64-linux-gnu- O=$(O)/optee_client
 
 .PHONY: clean
 clean:
