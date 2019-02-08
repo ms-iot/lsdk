@@ -200,6 +200,7 @@ $(RFS_DIR)/usr/bin/ssh:
 rfs-additions: rfs-base \
 	optee_client \
 	optee_test \
+	ftpm \
 	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_class_ls1012a.elf \
 	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_tmu_ls1012a.elf \
 
