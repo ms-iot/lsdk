@@ -201,6 +201,7 @@ rfs-additions: rfs-base \
 	optee_client \
 	optee_test \
 	ftpm \
+	cyres_test \
 	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_class_ls1012a.elf \
 	qoriq-engine-pfe-bin/ls1012a/slow_path/ppfe_tmu_ls1012a.elf \
 
@@ -230,6 +231,10 @@ rfs-additions: rfs-base \
 	sudo mkdir -p $(RFS_DIR)/lib/optee_armtz
 	sudo cp $(O)/fTPM/bc50d971-d4c9-42c4-82cb-343fb7f37896.ta \
 		$(RFS_DIR)/lib/optee_armtz
+
+	@echo "Installing cyres_test"
+	sudo cp cyres_test/host/cyres_test $(RFS_DIR)/usr/bin
+	sudo cp cyres_test/ta/*.ta $(RFS_DIR)/lib/optee_armtz
 
 .PHONY: rfs-prereqs
 rfs-prereqs: /usr/bin/qemu-aarch64-static
