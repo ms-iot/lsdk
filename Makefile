@@ -13,6 +13,11 @@ UBUNTU_BASE_URL = http://cdimage.ubuntu.com/ubuntu-base/releases/bionic/release/
 UBUNTU_BASE_FILENAME = $(notdir $(UBUNTU_BASE_URL))
 RFS_DIR = $(O)/rfs
 
+# a file that is used to determine if the base RFS has been built
+RFS_TARGET = $(RFS_DIR)/usr/bin/ssh
+RFS_PREREQ = /usr/bin/qemu-aarch64-static
+RFS_ADDITIONS = $(RFS_DIR)/usr/bin
+
 all: firmware os
 
 .PHONY: firmware os
@@ -85,17 +90,15 @@ ppa:
 	cd ppa-generic/ppa && CROSS_COMPILE=aarch64-linux-gnu- \
 	./build prod rdb spd=on ls1012
 
-.PHONY: linux
-linux: configure-linux compile-linux
-
 .PHONY: configure-linux
-configure-linux:
+configure-linux: $(LINUX_BUILD_PATH)/.config
+$(LINUX_BUILD_PATH)/.config:
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
 	$(MAKE) -C linux defconfig lsdk.config grapeboard_security.config \
 	O=$(LINUX_BUILD_PATH)
 
-.PHONY: compile-linux
-compile-linux:
+.PHONY: linux
+linux: $(LINUX_BUILD_PATH)/.config
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
 	$(MAKE) -C linux O=$(LINUX_BUILD_PATH)
 
@@ -157,7 +160,7 @@ update-linux-sdcard:
 #       FTPM
 .PHONY: rfs
 rfs: $(O)/rootfs.tar.gz
-$(O)/rootfs.tar.gz: rfs-additions
+$(O)/rootfs.tar.gz: $(RFS_ADDITIONS)
 	# pack up rootfs into tar.gz
 	cd $(RFS_DIR) && sudo tar -cf $@ .
 	sudo chown $(USER):$(USER) $@
@@ -165,10 +168,8 @@ $(O)/rootfs.tar.gz: rfs-additions
 # We use /usr/bin/ssh as a proxy for whether the base image has been built.
 # This typically only needs to done once.
 # You can force rebuild of base image by deleting $(RFS_DIR)
-.PHONY: rfs-base
-rfs-base: $(RFS_DIR)/usr/bin/ssh
-$(RFS_DIR)/usr/bin/ssh:
-	rfs-prereqs \
+$(RFS_TARGET): \
+	$(RFS_PREREQ) \
 	$(O)/download/$(UBUNTU_BASE_FILENAME) \
 
 	sudo rm -rf $(RFS_DIR)
@@ -193,11 +194,12 @@ $(RFS_DIR)/usr/bin/ssh:
 		sudo ssh vim udev kmod ifupdown net-tools
 
 	@echo "Configuring network"
-	sudo echo "auto eth0" >> $(RFS_DIR)/etc/network/interfaces
-	sudo echo "iface eth0 inet dhcp" >> $(RFS_DIR)/etc/network/interfaces
+	cp $(RFS_DIR)/etc/network/interfaces $(O)/interfaces
+	echo "auto eth0" >> $(O)/interfaces
+	echo "iface eth0 inet dhcp" >> $(O)/interfaces
+	sudo cp $(O)/interfaces $(RFS_DIR)/etc/network/interfaces
 
-.PHONY: rfs-additions
-rfs-additions: rfs-base \
+$(RFS_ADDITIONS): $(RFS_TARGET) \
 	optee_client \
 	optee_test \
 	ftpm \
@@ -236,9 +238,7 @@ rfs-additions: rfs-base \
 	sudo cp cyres_test/host/cyres_test $(RFS_DIR)/usr/bin
 	sudo cp cyres_test/ta/*.ta $(RFS_DIR)/lib/optee_armtz
 
-.PHONY: rfs-prereqs
-rfs-prereqs: /usr/bin/qemu-aarch64-static
-/usr/bin/qemu-aarch64-static:
+$(RFS_PREREQ):
 	@echo "Installing rootfs build tools"
 	sudo apt-get --assume-yes \
 		binfmt-support qemu-system-common qemu-user-static
