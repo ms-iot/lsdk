@@ -13,11 +13,11 @@ UBUNTU_BASE_URL = http://cdimage.ubuntu.com/ubuntu-base/releases/bionic/release/
 UBUNTU_BASE_FILENAME = $(notdir $(UBUNTU_BASE_URL))
 RFS_DIR = $(O)/rfs
 
-all: firmware linux rfs
+all: firmware os
 
 .PHONY: firmware os
 firmware: u-boot-signed ppa-optee bootscript
-os: linux
+os: linux rfs
 
 .PHONY: u-boot-signed
 u-boot-signed: u-boot $(O)/hdr_spl.out
