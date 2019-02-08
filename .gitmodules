@@ -29,3 +29,7 @@
 	path = ms-tpm-20-ref
 	url = https://github.com/Microsoft/ms-tpm-20-ref.git
 	branch = master
+[submodule "ppa-generic"]
+	path = ppa-generic
+	url = https://source.codeaurora.org/external/qoriq/qoriq-components/ppa-generic
+	branch = github.qoriq-os/integration
