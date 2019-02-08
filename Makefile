@@ -225,6 +225,11 @@ rfs-additions: rfs-base \
 	OPTEE_CLIENT_EXPORT=$(O)/optee_client/export \
 	O=$(O)/optee_test
 
+	@echo "Installing FTPM"
+	sudo mkdir -p $(RFS_DIR)/lib/optee_armtz
+	sudo cp $(O)/fTPM/bc50d971-d4c9-42c4-82cb-343fb7f37896.ta \
+		$(RFS_DIR)/lib/optee_armtz
+
 .PHONY: rfs-prereqs
 rfs-prereqs: /usr/bin/qemu-aarch64-static
 /usr/bin/qemu-aarch64-static:
@@ -309,6 +314,13 @@ optee_test: optee_client optee
 	TA_DEV_KIT_DIR=$(O)/optee/export-ta_arm64 \
 	OPTEE_CLIENT_EXPORT=$(O)/optee_client/export \
 	O=$(O)/optee_test
+
+.PHONY: ftpm
+ftpm: optee
+	TA_DEV_KIT_DIR=$(OPTEE_BUILD_PATH)/export-ta_arm64 \
+	TA_CPU=cortex-a53 TA_CROSS_COMPILE=aarch64-linux-gnu- \
+	$(MAKE) -C ms-tpm-20-ref/Samples/ARM32-FirmwareTPM/optee_ta/fTPM \
+	O=$(O)/fTPM
 
 .PHONY: clean
 clean:
