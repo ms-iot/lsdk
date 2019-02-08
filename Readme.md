@@ -82,7 +82,7 @@ These files must be written to NOR flash.
 
 ## Updating Firmware on NOR Flash
 
-Copy `u-boot-with-spl-pbl.bin`, `hdr_spl.out`, and `ppa.itb` to the root of a FAT-formatted SD card.
+Copy `u-boot-with-spl-pbl.bin`, `hdr_spl.out`, and `ppa.itb` from the `build` directory to the root of a FAT-formatted SD card.
 
 Boot into [recovery U-Boot](#booting-grapeboard-into-recovery-mode), then run the following u-boot commands:
 
