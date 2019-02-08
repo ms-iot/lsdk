@@ -323,6 +323,13 @@ ftpm: optee
 	$(MAKE) -C ms-tpm-20-ref/Samples/ARM32-FirmwareTPM/optee_ta/fTPM \
 	O=$(O)/fTPM
 
+.PHONY: cyres_test
+cyres_test: optee
+	TA_DEV_KIT_DIR=$(OPTEE_BUILD_PATH)/export-ta_arm64 \
+	TEEC_EXPORT=$(O)/optee_client/export \
+	HOST_CROSS_COMPILE=aarch64-linux-gnu- \
+	$(MAKE) -C cyres_test
+
 .PHONY: clean
 clean:
 	rm -rf build
