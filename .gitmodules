@@ -6,10 +6,6 @@
 	path = cst
 	url = https://source.codeaurora.org/external/qoriq/qoriq-components/cst
 	branch = github.qoriq-os/integration
-[submodule "ppa-generic"]
-	path = ppa-generic
-	url = https://source.codeaurora.org/external/qoriq/qoriq-components/ppa-generic
-	branch = github.qoriq-os/integration
 [submodule "optee_os"]
 	path = optee_os
 	url = https://github.com/ms-iot/optee_os.git
