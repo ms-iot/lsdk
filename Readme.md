@@ -62,6 +62,8 @@ sudo apt install build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu u-b
 Change directories to the root of this repository, and run
 
 ```
+git submodule init
+git submodule update --recursive
 make firmware
 ```
 
