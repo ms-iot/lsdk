@@ -63,7 +63,7 @@ Change directories to the root of this repository, and run
 
 ```
 git submodule init
-git submodule update --recursive
+git submodule update --init --recursive
 make firmware
 ```
 
