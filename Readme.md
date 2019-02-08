@@ -27,7 +27,7 @@ You will interact with the device over the serial terminal, and eventually the n
 1. Connect the micro USB cable to the micro USB connector (next to the power connector). Your PC should recognize it as a USB/Serial device. If it does not, you can try the driver [here](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers).
 2. Determine the COM port number from device manager.
 3. Open a putty terminal at 115200 8N1. You must go to **Connection -> Serial** and set **Flow control** to **None**.
-![Putty Flow Control](putty-flow-control.png)
+![Putty Flow Control](docs/putty-flow-control.png)
 4. Power on the board by plugging in the power supply.
 
 You should see spew from the bootloader in your putty terminal.
@@ -77,10 +77,6 @@ This will build the following items:
    * `build/grapeboard_boot.scr`
 
 These files must be written to NOR flash.
-
-**Note:** A prebuilt binary is available [here](https://grapeboardbinaries.blob.core.windows.net/grapeboard/u-boot-with-spl-pbl.bin).
-
-**Note:** A prebuilt binary is available [here](https://grapeboardbinaries.blob.core.windows.net/grapeboard/ppa.itb).
 
 ## Updating Firmware on NOR Flash
 
@@ -250,7 +246,7 @@ D/TA:  TA_DestroyEntryPoint:50 has been called
 These instructions taken from section 5.3 of the [Grapeboard BSP User Guide](https://www.grapeboard.com/wp-content/uploads/2018/05/scalys_grapeboard_bsp_user_guide_180518.pdf).
 
 1. Connect the Grapeboard to your host PC and open a serial terminal at 115200 8N1. If you're using Putty on Windows, you must go to **Connection -> Serial** and set **Flow control** to **None**.
-![Putty Flow Control](putty-flow-control.png)
+![Putty Flow Control](docs/putty-flow-control.png)
 1. Press and hold switch `S2` on the Grapeboard.
 1. Power-up (or reset with switch `S1`) the Grapeboard
 1. Release switch `S2` once U-boot prints the message: `Please release the rescue mode button (S2) to enter the recovery mode`
