@@ -13,10 +13,11 @@ UBUNTU_BASE_URL = http://cdimage.ubuntu.com/ubuntu-base/releases/bionic/release/
 UBUNTU_BASE_FILENAME = $(notdir $(UBUNTU_BASE_URL))
 RFS_DIR = $(O)/rfs
 
-# a file that is used to determine if the base RFS has been built
-RFS_TARGET = $(RFS_DIR)/usr/bin/ssh
+# file used to determine if the base RFS has been built
+RFS_TARGET = $(RFS_DIR)/etc/network/interfaces
+
+# file used to determine if RFS prerequisites have been installed
 RFS_PREREQ = /usr/bin/qemu-aarch64-static
-RFS_ADDITIONS = $(RFS_DIR)/usr/bin
 
 all: firmware os
 
@@ -160,7 +161,7 @@ update-linux-sdcard:
 #       FTPM
 .PHONY: rfs
 rfs: $(O)/rootfs.tar.gz
-$(O)/rootfs.tar.gz: $(RFS_ADDITIONS)
+$(O)/rootfs.tar.gz: rfs-additions
 	# pack up rootfs into tar.gz
 	cd $(RFS_DIR) && sudo tar -cf $@ .
 	sudo chown $(USER):$(USER) $@
@@ -199,7 +200,8 @@ $(RFS_TARGET): \
 	echo "iface eth0 inet dhcp" >> $(O)/interfaces
 	sudo cp $(O)/interfaces $(RFS_DIR)/etc/network/interfaces
 
-$(RFS_ADDITIONS): $(RFS_TARGET) \
+.PHONY: rfs-additions
+rfs-additions: $(RFS_TARGET) \
 	optee_client \
 	optee_test \
 	ftpm \
