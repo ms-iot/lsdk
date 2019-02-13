@@ -128,22 +128,22 @@ linux: $(LINUX_BUILD_PATH)/.config
 # (e.g. /dev/sdd), and run this target.
 .PHONY: update-linux-sdcard
 update-linux-sdcard:
+	-mkdir -p /media/$(USER)/sdx1
 	-mkdir -p /media/$(USER)/sdx2
-	-mkdir -p /media/$(USER)/sdx3
+	mount $(DEV)1 /media/$(USER)/sdx1
 	mount $(DEV)2 /media/$(USER)/sdx2
-	mount $(DEV)3 /media/$(USER)/sdx3
 
 	# copy new kernel image
-	mv /media/$(USER)/sdx2/Image /media/$(USER)/sdx2/Image.old
-	cp $(O)/install/Image /media/$(USER)/sdx2
+	mv /media/$(USER)/sdx1/Image /media/$(USER)/sdx1/Image.old
+	cp $(O)/install/Image /media/$(USER)/sdx1
 
 	# copy new modules
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
         $(MAKE) -C linux modules_install \
-        INSTALL_MOD_PATH=/media/$(USER)/sdx3 O=$(LINUX_BUILD_PATH)
+        INSTALL_MOD_PATH=/media/$(USER)/sdx2 O=$(LINUX_BUILD_PATH)
 
+	umount /media/$(USER)/sdx1
 	umount /media/$(USER)/sdx2
-	umount /media/$(USER)/sdx3
 	udisksctl power-off -b $(DEV)
 
 # rootfs is the combination of
