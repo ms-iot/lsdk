@@ -18,7 +18,7 @@ You will need
  - 5-15V power supply
  - micro USB cable
  - 8GB or greater micro SD card
- - A physical machine with USB port running [Ubuntu 18.04 LTS](http://releases.ubuntu.com/18.04/)
+ - A **physical machine** with micro SD card reader running **[Ubuntu 18.04 LTS](http://releases.ubuntu.com/18.04/)**. You must use 18.04 - other versions may not work.
 
 You will interact with the device over the serial terminal, and eventually the network. U-Boot, PPA, and OP-TEE are stored on on-board NOR flash, and linux will be stored on the SD card.
 
@@ -53,7 +53,7 @@ Congratulations, you're ready to run commands at the U-Boot prompt.
 # Install prerequisites
 
 ```
-sudo apt install build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu u-boot-tools device-tree-compiler
+sudo apt install git flex bison python-pip libssl-dev build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu u-boot-tools device-tree-compiler qemu-user-static
 
 ```
 

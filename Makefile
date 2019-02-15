@@ -16,9 +16,6 @@ RFS_DIR = $(O)/rfs
 # file used to determine if the base RFS has been built
 RFS_TARGET = $(RFS_DIR)/etc/network/interfaces
 
-# file used to determine if RFS prerequisites have been installed
-RFS_PREREQ = /usr/bin/qemu-aarch64-static
-
 all: firmware os
 
 .PHONY: firmware os
@@ -170,7 +167,6 @@ $(O)/rootfs.tar.gz: rfs-additions
 # This typically only needs to done once.
 # You can force rebuild of base image by deleting $(RFS_DIR)
 $(RFS_TARGET): \
-	$(RFS_PREREQ) \
 	$(O)/download/$(UBUNTU_BASE_FILENAME) \
 
 	sudo rm -rf $(RFS_DIR)
@@ -181,6 +177,8 @@ $(RFS_TARGET): \
 
 	@echo "Preparing rootfs for chroot"
 	sudo cp /etc/resolv.conf $(RFS_DIR)/etc/resolv.conf
+
+	update-binfmts --enable qemu-aarch64
 	sudo cp /usr/bin/qemu-aarch64-static $(RFS_DIR)/usr/bin/
 	sudo cp /usr/bin/qemu-arm-static $(RFS_DIR)/usr/bin/
 
@@ -239,12 +237,6 @@ rfs-additions: $(RFS_TARGET) \
 	@echo "Installing cyres_test"
 	sudo cp cyres_test/host/cyres_test $(RFS_DIR)/usr/bin
 	sudo cp cyres_test/ta/*.ta $(RFS_DIR)/lib/optee_armtz
-
-$(RFS_PREREQ):
-	@echo "Installing rootfs build tools"
-	sudo apt-get --assume-yes \
-		binfmt-support qemu-system-common qemu-user-static
-	update-binfmts --enable qemu-aarch64
 
 # download Ubuntu Base RootFS archive from Ubuntu
 $(O)/download/$(UBUNTU_BASE_FILENAME):
