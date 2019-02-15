@@ -326,7 +326,7 @@ optee_test: optee_client optee
 .PHONY: ftpm
 ftpm: optee
 	TA_DEV_KIT_DIR=$(OPTEE_BUILD_PATH)/export-ta_arm64 \
-	TA_CPU=cortex-a53 TA_CROSS_COMPILE=aarch64-linux-gnu- \
+	TA_CPU=cortex-a53 CROSS_COMPILE=aarch64-linux-gnu- \
 	$(MAKE) -C ms-tpm-20-ref/Samples/ARM32-FirmwareTPM/optee_ta/fTPM \
 	O=$(O)/fTPM
 
@@ -334,7 +334,7 @@ ftpm: optee
 cyres_test: optee
 	TA_DEV_KIT_DIR=$(OPTEE_BUILD_PATH)/export-ta_arm64 \
 	TEEC_EXPORT=$(O)/optee_client/export \
-	HOST_CROSS_COMPILE=aarch64-linux-gnu- \
+	CROSS_COMPILE=aarch64-linux-gnu- \
 	$(MAKE) -C cyres_test
 
 .PHONY: clean
