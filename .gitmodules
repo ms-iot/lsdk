@@ -1,0 +1,35 @@
+[submodule "u-boot"]
+	path = u-boot
+	url = https://github.com/ms-iot/u-boot.git
+	branch = ms-iot-grapeboard
+[submodule "cst"]
+	path = cst
+	url = https://source.codeaurora.org/external/qoriq/qoriq-components/cst
+	branch = github.qoriq-os/integration
+[submodule "optee_os"]
+	path = optee_os
+	url = https://github.com/ms-iot/optee_os.git
+	branch = ms-iot-security
+[submodule "linux"]
+	path = linux
+	url = https://github.com/ms-iot/linux.git
+	branch = ms-iot-grapeboard
+[submodule "qoriq-engine-pfe-bin"]
+	path = qoriq-engine-pfe-bin
+	url = https://github.com/nxp/qoriq-engine-pfe-bin.git
+	branch = integration
+[submodule "optee_client"]
+	path = optee_client
+	url = https://github.com/ms-iot/optee_client.git
+	branch = ms-optee-ocalls
+[submodule "optee_test"]
+	path = optee_test
+	url = https://github.com/OP-TEE/optee_test.git
+[submodule "ms-tpm-20-ref"]
+	path = ms-tpm-20-ref
+	url = https://github.com/Microsoft/ms-tpm-20-ref.git
+	branch = master
+[submodule "ppa-generic"]
+	path = ppa-generic
+	url = https://source.codeaurora.org/external/qoriq/qoriq-components/ppa-generic
+	branch = github.qoriq-os/integration

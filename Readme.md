@@ -1,12 +1,7 @@
 Getting started on LS1012 Grapeboard
 ============
 
-This document will walk you through building all components from source and developing OP-TEE TA's for [Scalys Grapeboard](https://www.grapeboard.com/). The components we will build are
-
- - RCW, PBL, and U-Boot
- - PPA (Primary Protected Application)
- - OP-TEE
- - Linux
+This document will walk you through building all components from source and developing OP-TEE TA's for [Scalys Grapeboard](https://www.grapeboard.com/). We will build firmware, linux image, and test applications for Scalys grapeboard.
 
 ## Reference
 
@@ -23,7 +18,7 @@ You will need
  - 5-15V power supply
  - micro USB cable
  - 8GB or greater micro SD card
- - A physical machine with USB port running [Ubuntu 18.04 LTS](http://releases.ubuntu.com/18.04/)
+ - A **physical machine** with micro SD card reader running **[Ubuntu 18.04 LTS](http://releases.ubuntu.com/18.04/)**. You must use 18.04 - other versions may not work.
 
 You will interact with the device over the serial terminal, and eventually the network. U-Boot, PPA, and OP-TEE are stored on on-board NOR flash, and linux will be stored on the SD card.
 
@@ -32,7 +27,7 @@ You will interact with the device over the serial terminal, and eventually the n
 1. Connect the micro USB cable to the micro USB connector (next to the power connector). Your PC should recognize it as a USB/Serial device. If it does not, you can try the driver [here](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers).
 2. Determine the COM port number from device manager.
 3. Open a putty terminal at 115200 8N1. You must go to **Connection -> Serial** and set **Flow control** to **None**.
-![Putty Flow Control](putty-flow-control.png)
+![Putty Flow Control](docs/putty-flow-control.png)
 4. Power on the board by plugging in the power supply.
 
 You should see spew from the bootloader in your putty terminal.
@@ -58,72 +53,55 @@ Congratulations, you're ready to run commands at the U-Boot prompt.
 # Install prerequisites
 
 ```
-sudo apt install build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu u-boot-tools device-tree-compiler
+sudo apt install git flex bison python-pip libssl-dev build-essential gcc-aarch64-linux-gnu g++-aarch64-linux-gnu u-boot-tools device-tree-compiler qemu-user-static
 
 ```
 
-# Building RCW, PBL, and U-Boot
+# Building Firmware
 
-U-Boot is built outside the flexbuild environment. Our branch is forked from the `scalys-lsdk-1803` branch of `git://git.scalys.com/lsdk/u-boot`. Our branch is `https://github.com/ms-iot/u-boot.git` branch `ms-iot-grapeboard`.
+Change directories to the root of this repository, and run
 
 ```
-git clone --recurse-submodules https://github.com/ms-iot/u-boot.git -b ms-iot-grapeboard
-cd u-boot
-export ARCH=aarch64
-export CROSS_COMPILE=aarch64-linux-gnu-
-make grapeboard_pcie_qspi_spl_defconfig
-make
+git submodule init
+git submodule update --init --recursive
+make firmware
 ```
 
-It will produce a file named `u-boot-with-spl-pbl.bin`. This file must be written to NOR flash.
+This will build the following items:
 
-**Note:** A prebuilt binary is available [here](https://grapeboardbinaries.blob.core.windows.net/grapeboard/u-boot-with-spl-pbl.bin).
+ * U-Boot
+   * `build/u-boot-with-spl-pbl.bin`
+ * HAB Signature Data
+   * `build/hdr_spl.out`
+ * OP-TEE OS and PPA
+   * `build/ppa.itb`
+ * Boot script
+   * `build/grapeboard_boot.scr`
 
-## Updating U-Boot on NOR Flash
+These files must be written to NOR flash.
 
-Copy `u-boot-with-spl-pbl.bin` to the root of a FAT-formatted SD card.
+## Updating Firmware on NOR Flash
+
+Copy `u-boot-with-spl-pbl.bin`, `hdr_spl.out`, and `ppa.itb` from the `build` directory to the root of a FAT-formatted SD card.
 
 Boot into [recovery U-Boot](#booting-grapeboard-into-recovery-mode), then run the following u-boot commands:
 
 ```
+# Update U-Boot
 mmc rescan
 fatload mmc 0:1 $load_addr u-boot-with-spl-pbl.bin
 sf probe 0:0
 sf erase u-boot 200000
 sf write $load_addr u-boot $filesize
-```
 
-Reset the board. When it reboots, you should see it execute your U-Boot.
+# Update CSF Header
+mmc rescan
+fatload mmc 0:1 $load_addr hdr_spl.out
+sf probe 0:0
+sf erase u-boot_hdr 40000
+sf write $load_addr u-boot_hdr $filesize
 
-# Building PPA and OP-TEE
-
-OP-TEE is built from [https://github.com/ms-iot/optee_os](https://github.com/ms-iot/optee_os) branch `ms-iot-security`. The "flexbuild" script orchestrates the build of all grapeboard components except U-Boot. Flexbuild is developed by NXP and forked into this repository. It will pull the correct version of OP-TEE when you build it.
-
-The first step in running commands in flexbuild is to cd to the root of this repository and source the `setup.env` script.
-
-```
-git clone https://github.com/ms-iot/lsdk.git
-cd lsdk
-source setup.env
-```
-
-Then, you can run `flex-builder` to build the PPA+OP-TEE combined FIT image.
-
-```
-flex-builder -c ppa-optee -m ls1012grapeboard
-```
-
-It will produce the file `build/firmware/ppa/soc-ls1012/ppa.itb`. This file must be written to NOR flash.
-
-**Note:** A prebuilt binary is available [here](https://grapeboardbinaries.blob.core.windows.net/grapeboard/ppa.itb).
-
-## Updating PPA and OP-TEE on NOR Flash
-
-Copy `ppa.itb` to the root of a FAT-formatted SD card.
-
-Boot into [recovery U-Boot](#booting-grapeboard-into-recovery-mode), then run the following u-boot commands:
-
-```
+# Update PPA+OPTEE
 mmc rescan
 fatload mmc 0:1 $load_addr ppa.itb
 sf probe 0:0
@@ -131,34 +109,31 @@ sf erase ppa 100000
 sf write $load_addr ppa $filesize
 ```
 
-Reset the board. When it reboots, you should see output like the following, which indicates that you successfully updated PPA and OP-TEE.
+Reset the board. When it reboots, you should see it execute your firmware. You should see output like the following, which indicates that U-Boot SPL, OP-TEE, and U-Boot Proper are running.
 
 ```
+U-Boot SPL 2018.09-00480-gdc28a9fa63-dirty (Jan 17 2019 - 11:17:15 -0800)
 PPA Firmware: Version LSDK-18.09
 SEC Firmware: 'loadables' present in config
 loadables: 'trustedOS@1'
+I/TC:
+I/TC: OP-TEE version: v0.4.0-443-g9cdcf55b-dev #6 Sat Jan 26 05:59:52 UTC 2019 aarch64
+I/TC: Successfully captured Cyres certificate chain
+I/TC: Successfully captured Cyres private key
+I/TC: Initialized
+Trying to boot from RAM
+
+
+U-Boot 2018.09-00480-gdc28a9fa63-dirty (Jan 17 2019 - 11:17:15 -0800)
 ```
 
 # Building Linux
 
-Run the following commands in your flexbuild window to build linux.
+In the root of this repository, run the following command to build the linux kernel and RootFS.
 
 ```
-flex-builder -c linux -a arm64 -m ls1012grapeboard
-flex-builder -i mkrfs -a arm64
-flex-builder -i mkbootpartition -m ls1012grapeboard -a arm64
-flex-builder -c optee_client -a arm64
-flex-builder -c optee_test -a arm64
-flex-builder -c optee_ta_ftpm -a arm64
-flex-builder -i merge-component -a arm64 -m ls1012grapeboard
+make os
 ```
-
-This will create a boot partition tarball (`build/images/bootpartition_arm64_<version>.tgz`) and rootfs (`build/rfs/rootfs_ubuntu_bionic_arm64`). We will use the `flex-installer` script to apply them to an SD card.
-
-**Note:** To reduce build time, you can download a
-[prebuilt boot partition tarball](https://grapeboardbinaries.blob.core.windows.net/grapeboard/bootpartition_arm64_lts_4.14.tgz)
-and a
-[prebuilt root filesystem tarball](https://grapeboardbinaries.blob.core.windows.net/grapeboard/rootfs_ubuntu_bionic_arm64_201811150958.tgz).
 
 Linux is the combination of NXP's layerscape fork ([https://source.codeaurora.org/external/qoriq/qoriq-components/linux](https://source.codeaurora.org/external/qoriq/qoriq-components/linux) `tags/LSDK-18.09-V4.14`) and grapeboard patches. Grapeboard patches were taken from `git://git.scalys.com/lsdk/linux` branch `grapeboard-proto`. The grapeboard patches have been rebased on top of `tags/LSDK-18.09-V4.14`, and the result is stored at [https://github.com/ms-iot/linux branch](https://github.com/ms-iot/linux) branch `ms-iot-grapeboard`.
 
@@ -169,50 +144,24 @@ You will need a physical linux machine and an 8GB or larger SD card.
 Run the following command, where `/dev/sdx` is your SD card. All data on the card will be lost.
 
 ```
-flex-installer -b build/images/bootpartition_arm64_<version>.tgz -r build/rfs/rootfs_ubuntu_bionic_arm64 -d /dev/sdx
+make sdcard DEV=/dev/sdx
 ```
 
-**Note:** The `-r` parameter can take either a directory or a path to a tarball, so you can use the prebuilt tarball if you downloaded it.
-
-Unmount and eject the SD card.
-
-```
-udisksctl unmount -b /dev/sdx1
-udisksctl unmount -b /dev/sdx2
-udisksctl unmount -b /dev/sdx3
-udisksctl power-off -b /dev/sdx
-```
+When the script finishes, it is safe to remove the SD card.
 
 Insert the SD card to your grapeboard and power on. You should see linux boot. You can log in and interact with the device over the serial terminal. The login credentials are:
+
 ```
 Username: root
 Password: root
 ```
 
-### Enabling network and SSH
-
-Networking is not configured by default. Use the following commands to enable networking. This only needs to be done once.
+You can determine the device's IP address by running `ifconfig`. Then, you can SSH into the device with the following credentials:
 
 ```
-echo "auto eth0" >> /etc/network/interfaces
-echo "iface eth0 inet dhcp" >> /etc/network/interfaces
-ifup -a
+Username: user
+Password: user
 ```
-
-Enable root to login over SSH, and restart SSH server.
-
-```
-echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
-service sshd restart
-```
-
-Wait a little bit for the device to acquire an IP address, then determine the device's IP by running:
-
-```
-ifconfig eth0
-```
-
-You can now SSH into the device using it's IP address, and `root/root` as login credentials.
 
 # Running OP-TEE tests
 
@@ -238,13 +187,12 @@ TEE test application done!
 
 1. Build optee\_os and optee\_client.
 	```
-	flex-builder -c optee_os -m ls1012grapeboard -a arm64
-	flex-builder -c optee_client -m ls1012grapeboard -a arm64
+	make optee optee_client
 	```
 1. Set required environment variables.
 	```
-	export TA_DEV_KIT_DIR=$PWD/packages/apps/optee_os/out/arm-plat-ls/export-ta_arm64/
-	export TEEC_EXPORT=$PWD/build/apps/components_arm64
+	export TA_DEV_KIT_DIR=$PWD/build/optee/export-ta_arm64/
+	export TEEC_EXPORT=$PWD/build/optee_client/export
 	export HOST_CROSS_COMPILE=aarch64-linux-gnu-
 	```
 1. Change directories outside this repository, and clone `optee_examples`.
@@ -259,16 +207,16 @@ TEE test application done!
 	```
 1. Copy host executable and TA to target.
 	```
-	scp host/optee_example_hello_world root@<ip>:~
-	scp ta/*.ta root@<ip>:~
+	scp host/optee_example_hello_world user@<ip>:~
+	scp ta/*.ta user@<ip>:~
 	```
 1. On the target, copy the `.ta` file to `/lib/optee_armtz`.
 	```
 	cp *.ta /lib/optee_armtz
 	```
-1. On the target, open a separate SSH window, and start the supplicant.
+1. On the target, in the root SSH session, start the TEE supplicant.
 	```
-	tee-supplicant
+	tee-supplicant &
 	```
 1. In another window on the target, run the host executable.
 	```
@@ -277,7 +225,7 @@ TEE test application done!
 
 You should see the following printed from the host executable:
 ```
-root@localhost:~# ./optee_example_hello_world
+user@localhost:~# sudo ./optee_example_hello_world
 Invoking TA to increment 42
 TA incremented value to 43
 ```
@@ -300,7 +248,7 @@ D/TA:  TA_DestroyEntryPoint:50 has been called
 These instructions taken from section 5.3 of the [Grapeboard BSP User Guide](https://www.grapeboard.com/wp-content/uploads/2018/05/scalys_grapeboard_bsp_user_guide_180518.pdf).
 
 1. Connect the Grapeboard to your host PC and open a serial terminal at 115200 8N1. If you're using Putty on Windows, you must go to **Connection -> Serial** and set **Flow control** to **None**.
-![Putty Flow Control](putty-flow-control.png)
+![Putty Flow Control](docs/putty-flow-control.png)
 1. Press and hold switch `S2` on the Grapeboard.
 1. Power-up (or reset with switch `S1`) the Grapeboard
 1. Release switch `S2` once U-boot prints the message: `Please release the rescue mode button (S2) to enter the recovery mode`
@@ -308,7 +256,7 @@ These instructions taken from section 5.3 of the [Grapeboard BSP User Guide](htt
 You can now issue commands at the U-Boot prompt.
 
 # Secure Boot
-For documentation about enabling secure boot on the Grapeboard please see [grapeboard_secureboot.md](grapeboard_secureboot.md)
+For documentation about enabling secure boot on the Grapeboard please see [grapeboard_secureboot.md](docs/grapeboard_secureboot.md)
 
 # fTPM 
 In order to use fTPM TPM driver, please start tee-supplicant and load the driver first:
