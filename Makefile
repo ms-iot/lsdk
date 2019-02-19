@@ -27,8 +27,8 @@ endif
 all: firmware os
 
 .PHONY: firmware os
-firmware: u-boot-signed ppa-optee bootscript
-os: linux rfs
+firmware: u-boot-signed ppa-optee
+os: linux rfs bootscript
 
 .PHONY: u-boot-signed
 u-boot-signed: u-boot $(O)/hdr_spl.out
