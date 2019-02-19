@@ -81,8 +81,6 @@ This will build the following items:
    * `build/hdr_spl.out`
  * OP-TEE OS and PPA
    * `build/ppa.itb`
- * Boot script
-   * `build/grapeboard_boot.scr`
 
 These files must be written to NOR flash.
 
