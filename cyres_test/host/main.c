@@ -54,42 +54,59 @@ static const char *str_from_res(TEEC_Result res)
 	return "[unknown error]";
 }
 
+/*
+ * The command must support semantics where (commandID - 1) is a command
+ * that retrieves the size of the buffer required by commandID.
+ */
 int query_string_from_ta(TEEC_Session *sess, uint32_t commandID, char **str)
 {
 	TEEC_Result res;
 	TEEC_Operation op;
+	uint32_t size;
 	char *buf = NULL;
 	uint32_t err_origin;
 
+	if (commandID == 0) {
+		return TEEC_ERROR_BAD_PARAMETERS;
+	}
+
 	/* get required buffer size */
 	memset(&op, 0, sizeof(op));
-	op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_OUTPUT, TEEC_NONE,
+	op.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_OUTPUT, TEEC_NONE,
 					 TEEC_NONE, TEEC_NONE);
 
-	res = TEEC_InvokeCommand(sess, commandID, &op, &err_origin);
-	if (res != TEEC_ERROR_SHORT_BUFFER) {
+	res = TEEC_InvokeCommand(sess, commandID - 1, &op, &err_origin);
+	if (res != TEEC_SUCCESS) {
 		fprintf(stderr,
-			"TEEC_InvokeCommand failed with code 0x%x (%s)"
+			"Failed to get required buffer size: "
+			"TEEC_InvokeCommand failed with code 0x%x (%s) "
 			"origin %s\n",
 			res, str_from_res(res), str_from_origin(err_origin));
 		goto end;
 	}
 
 	/* allocate buffer to hold string */
-	buf = (char *)malloc(op.params[0].tmpref.size);
+	size = op.params[0].value.a;
+	buf = (char *)malloc(size);
 	if (!buf) {
 		res = -ENOMEM;
 		fprintf(stderr, "Allocation of %d bytes failed\n",
-			op.params[0].value.a);
+			size);
 		goto end;
 	}
 
 	/* retrieve string */
+	memset(&op, 0, sizeof(op));
+	op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_OUTPUT, TEEC_NONE,
+					 TEEC_NONE, TEEC_NONE);
+
 	op.params[0].tmpref.buffer = buf;
+	op.params[0].tmpref.size = size;
 	res = TEEC_InvokeCommand(sess, commandID, &op, &err_origin);
 	if (res != TEEC_SUCCESS) {
 		fprintf(stderr,
-			"TEEC_InvokeCommand failed with code 0x%x (%s)"
+			"Failed to retrieve string: "
+			"TEEC_InvokeCommand failed with code 0x%x (%s) "
 			"origin %s\n",
 			res, str_from_res(res), str_from_origin(err_origin));
 		goto end;

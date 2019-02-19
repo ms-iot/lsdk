@@ -13,10 +13,19 @@
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wenum-compare"
 _Static_assert(
+	PTA_CYRES_GET_PRIVATE_KEY_SIZE == TA_CYRES_TEST_GET_PRIVATE_KEY_SIZE,
+	"Incorrect command value");
+_Static_assert(
 	PTA_CYRES_GET_PRIVATE_KEY == TA_CYRES_TEST_GET_PRIVATE_KEY,
 	"Incorrect command value");
 _Static_assert(
+	PTA_CYRES_GET_PUBLIC_KEY_SIZE == TA_CYRES_TEST_GET_PUBLIC_KEY_SIZE,
+	"Incorrect command value");
+_Static_assert(
 	PTA_CYRES_GET_PUBLIC_KEY == TA_CYRES_TEST_GET_PUBLIC_KEY,
+	"Incorrect command value");
+_Static_assert(
+	PTA_CYRES_GET_CERT_CHAIN_SIZE == TA_CYRES_TEST_GET_CERT_CHAIN_SIZE,
 	"Incorrect command value");
 _Static_assert(
 	PTA_CYRES_GET_CERT_CHAIN == TA_CYRES_TEST_GET_CERT_CHAIN,
