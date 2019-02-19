@@ -16,6 +16,14 @@ RFS_DIR = $(O)/rfs
 # file used to determine if the base RFS has been built
 RFS_TARGET = $(RFS_DIR)/etc/network/interfaces
 
+# Compile with 'make HAB=1' if your board has HAB enabled
+HAB ?= 0
+ifeq ($(HAB),0)
+UBOOT_CONFIG=grapeboard_pcie_qspi_spl_defconfig
+else
+UBOOT_CONFIG=grapeboard_pcie_qspi_spl_secureboot_defconfig
+endif
+
 all: firmware os
 
 .PHONY: firmware os
@@ -29,7 +37,7 @@ u-boot-signed: u-boot $(O)/hdr_spl.out
 u-boot:
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=aarch64 \
 	$(MAKE) -C $(UBOOT_SRC_PATH) \
-	grapeboard_pcie_qspi_spl_secureboot_defconfig O=$(UBOOT_BUILD_PATH)
+	$(UBOOT_CONFIG) O=$(UBOOT_BUILD_PATH)
 
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=aarch64 \
 	$(MAKE) -C $(UBOOT_SRC_PATH) O=$(UBOOT_BUILD_PATH)

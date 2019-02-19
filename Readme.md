@@ -67,6 +67,12 @@ git submodule update --init --recursive
 make firmware
 ```
 
+If your board has HAB enabled, pass `HAB=1` to the `make` command:
+
+```
+make firmware HAB=1
+```
+
 This will build the following items:
 
  * U-Boot
