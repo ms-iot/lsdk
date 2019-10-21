@@ -24,6 +24,8 @@ else
 UBOOT_CONFIG=grapeboard_pcie_qspi_spl_secureboot_defconfig
 endif
 
+NPROCS := $(shell nproc)
+
 all: firmware os
 
 .PHONY: firmware os
@@ -40,7 +42,7 @@ u-boot:
 	$(UBOOT_CONFIG) O=$(UBOOT_BUILD_PATH)
 
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=aarch64 \
-	$(MAKE) -C $(UBOOT_SRC_PATH) O=$(UBOOT_BUILD_PATH)
+	$(MAKE) -C $(UBOOT_SRC_PATH) O=$(UBOOT_BUILD_PATH) -j$(NPROCS)
 	cp $(UBOOT_BUILD_PATH)/u-boot-with-spl-pbl.bin $(O)/
 
 $(O)/hdr_spl.out: u-boot cst \
@@ -79,7 +81,7 @@ $(O)/tee.bin: optee
 .PHONY: optee
 optee:
 	CROSS_COMPILE64=aarch64-linux-gnu- \
-	$(MAKE) -C optee_os O=$(OPTEE_BUILD_PATH) \
+	$(MAKE) -C optee_os O=$(OPTEE_BUILD_PATH) -j$(NPROCS) \
 	PLATFORM=ls-ls1012grapeboard \
 	CFG_ARM64_core=y \
 	ARCH=arm \
@@ -106,21 +108,21 @@ $(LINUX_BUILD_PATH)/.config:
 .PHONY: linux
 linux: $(LINUX_BUILD_PATH)/.config
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
-	$(MAKE) -C linux O=$(LINUX_BUILD_PATH)
+	$(MAKE) -C linux O=$(LINUX_BUILD_PATH) -j$(NPROCS)
 
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
-	$(MAKE) -C linux modules O=$(LINUX_BUILD_PATH)
+	$(MAKE) -C linux modules O=$(LINUX_BUILD_PATH) -j$(NPROCS)
 
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
-	$(MAKE) -C linux modules_install \
+	$(MAKE) -C linux modules_install -j$(NPROCS) \
 	INSTALL_MOD_PATH=$(O)/install O=$(LINUX_BUILD_PATH)
 
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
-	$(MAKE) -C linux zinstall INSTALL_PATH=$(O)/install \
+	$(MAKE) -C linux zinstall INSTALL_PATH=$(O)/install -j$(NPROCS) \
 	O=$(LINUX_BUILD_PATH)
 
 	CROSS_COMPILE=aarch64-linux-gnu- ARCH=arm64 \
-	$(MAKE) -C linux "freescale/grapeboard.dtb" O=$(LINUX_BUILD_PATH)
+	$(MAKE) -C linux "freescale/grapeboard.dtb" O=$(LINUX_BUILD_PATH) -j$(NPROCS)
 
 	cp $(LINUX_BUILD_PATH)/arch/arm64/boot/Image* $(O)/install
 	cp $(LINUX_BUILD_PATH)/arch/arm64/boot/dts/freescale/grapeboard.dtb \
@@ -234,7 +236,7 @@ rfs-additions: $(RFS_TARGET) \
 	DESTDIR=$(RFS_DIR) \
 	CROSS_COMPILE=aarch64-linux-gnu- \
 	TA_DEV_KIT_DIR=$(O)/optee/export-ta_arm64 \
-	OPTEE_CLIENT_EXPORT=$(O)/optee_client/export \
+	OPTEE_CLIENT_EXPORT=$(O)/optee_client/export/usr \
 	O=$(O)/optee_test
 
 	@echo "Installing FTPM"
@@ -320,7 +322,7 @@ optee_test: optee_client optee
 	$(MAKE) -C optee_test \
 	CROSS_COMPILE=aarch64-linux-gnu- \
 	TA_DEV_KIT_DIR=$(O)/optee/export-ta_arm64 \
-	OPTEE_CLIENT_EXPORT=$(O)/optee_client/export \
+	OPTEE_CLIENT_EXPORT=$(O)/optee_client/export/usr \
 	O=$(O)/optee_test
 
 .PHONY: ftpm
@@ -333,7 +335,7 @@ ftpm: optee
 .PHONY: cyres_test
 cyres_test: optee
 	TA_DEV_KIT_DIR=$(OPTEE_BUILD_PATH)/export-ta_arm64 \
-	TEEC_EXPORT=$(O)/optee_client/export \
+	TEEC_EXPORT=$(O)/optee_client/export/usr \
 	CROSS_COMPILE=aarch64-linux-gnu- \
 	$(MAKE) -C cyres_test
 
