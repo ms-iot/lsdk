@@ -204,7 +204,7 @@ $(RFS_TARGET): \
 
 	@echo "Configuring network"
 	cp $(RFS_DIR)/etc/network/interfaces $(O)/interfaces
-	echo "auto eth0" >> $(O)/interfaces
+	echo "allow-hotplug eth0" >> $(O)/interfaces
 	echo "iface eth0 inet dhcp" >> $(O)/interfaces
 	sudo cp $(O)/interfaces $(RFS_DIR)/etc/network/interfaces
 
@@ -228,7 +228,7 @@ rfs-additions: $(RFS_TARGET) \
 		$(RFS_DIR)/lib/firmware
 
 	@echo "Installing OPTEE client"
-	sudo $(MAKE) -C optee_client install DESTDIR=$(RFS_DIR)/usr \
+	sudo $(MAKE) -C optee_client install DESTDIR=$(RFS_DIR) \
 		CROSS_COMPILE=aarch64-linux-gnu- O=$(O)/optee_client
 
 	@echo "Installing OPTEE test suite"
