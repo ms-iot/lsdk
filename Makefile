@@ -212,6 +212,8 @@ $(RFS_TARGET): \
 	cp $(RFS_DIR)/etc/network/interfaces $(O)/interfaces
 	echo "allow-hotplug eth0" >> $(O)/interfaces
 	echo "iface eth0 inet dhcp" >> $(O)/interfaces
+	echo "allow-hotplug eth1" >> $(O)/interfaces
+	echo "iface eth1 inet dhcp" >> $(O)/interfaces
 	sudo cp $(O)/interfaces $(RFS_DIR)/etc/network/interfaces
 
 .PHONY: rfs-additions
