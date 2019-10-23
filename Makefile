@@ -197,13 +197,21 @@ $(RFS_TARGET): \
 	echo "echo -e 'user\nuser\n' | passwd user" | sudo chroot $(RFS_DIR)
 
 	@echo "Installing packages"
+	sudo chroot $(RFS_DIR) apt-get update
 	sudo chroot $(RFS_DIR) apt-get --assume-yes install \
-		sudo ssh vim udev kmod ifupdown net-tools
+		sudo ssh vim udev kmod ifupdown net-tools htop tmux gpg curl docker.io
+
+	@echo "Configuring SSH"
+	cp $(RFS_DIR)/etc/ssh/sshd_config $(O)/sshd_config
+	echo "PermitRootLogin yes" >> $(O)/sshd_config
+	sudo cp $(O)/sshd_config $(RFS_DIR)/etc/ssh/sshd_config
 
 	@echo "Configuring network"
 	cp $(RFS_DIR)/etc/network/interfaces $(O)/interfaces
-	echo "auto eth0" >> $(O)/interfaces
+	echo "allow-hotplug eth0" >> $(O)/interfaces
 	echo "iface eth0 inet dhcp" >> $(O)/interfaces
+	echo "allow-hotplug eth1" >> $(O)/interfaces
+	echo "iface eth1 inet dhcp" >> $(O)/interfaces
 	sudo cp $(O)/interfaces $(RFS_DIR)/etc/network/interfaces
 
 .PHONY: rfs-additions
