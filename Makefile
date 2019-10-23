@@ -199,8 +199,9 @@ $(RFS_TARGET): \
 	echo "echo -e 'user\nuser\n' | passwd user" | sudo chroot $(RFS_DIR)
 
 	@echo "Installing packages"
+	sudo chroot $(RFS_DIR) apt-get update
 	sudo chroot $(RFS_DIR) apt-get --assume-yes install \
-		sudo ssh vim udev kmod ifupdown net-tools
+		sudo ssh vim udev kmod ifupdown net-tools gpg docker.io htop tmux curl
 
 	@echo "Configuring SSH"
 	cp $(RFS_DIR)/etc/ssh/sshd_config $(O)/sshd_config
