@@ -201,6 +201,14 @@ $(RFS_TARGET): \
 	sudo chroot $(RFS_DIR) apt-get --assume-yes install \
 		sudo ssh vim udev kmod ifupdown net-tools htop tmux gpg curl docker.io
 
+	@echo "Installing IoT Edge"
+	sudo chroot $(RFS_DIR) curl https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list -o /root/microsoft-prod.list
+	sudo chroot $(RFS_DIR) cp /root/microsoft-prod.list /etc/apt/sources.list.d
+	sudo chroot $(RFS_DIR) sh -c "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /root/microsoft.gpg"
+	sudo chroot $(RFS_DIR) cp /root/microsoft.gpg /etc/apt/trusted.gpg.d/
+	sudo chroot $(RFS_DIR) apt-get update
+	sudo chroot $(RFS_DIR) apt-get --assume-yes install iotedge
+
 	@echo "Configuring SSH"
 	cp $(RFS_DIR)/etc/ssh/sshd_config $(O)/sshd_config
 	echo "PermitRootLogin yes" >> $(O)/sshd_config
